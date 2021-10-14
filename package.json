@@ -1,0 +1,30 @@
+{
+  "name": "chizucraft",
+  "version": "1.0.0",
+  "description": "map data maker for minecraft",
+  "main": "app.js",
+  "scripts": {
+    "watch": "npx webpack -w",
+    "webpack": "npx webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "@h_nari",
+  "license": "ISC",
+  "dependencies": {
+    "jquery": "^3.6.0",
+    "jquery-confirm": "^3.3.4",
+    "leaflet": "^1.7.1"
+  },
+  "devDependencies": {
+    "@types/jquery": "^3.5.7",
+    "@types/leaflet": "^1.7.5",
+    "css-loader": "^6.4.0",
+    "mini-css-extract-plugin": "^2.4.2",
+    "sass": "^1.42.1",
+    "sass-loader": "^12.2.0",
+    "ts-loader": "^9.2.6",
+    "typescript": "^4.4.4",
+    "webpack": "^5.58.1",
+    "webpack-cli": "^4.9.0"
+  }
+}
