@@ -8,6 +8,6 @@ declare global {
 
 $(() => {
   window.cc = new Chizucraft();
+  window.cc.bind();
 });
 
-console.log('はろー');

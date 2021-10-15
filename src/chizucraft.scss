@@ -1,0 +1,29 @@
+#map {
+  height: 70vh;
+}
+
+#controller {
+  height: 30vh;
+  margin: 10px;
+  padding: 10px;
+  border: solid 1px black;
+
+  .c-row {
+    margin: 5px;
+    border-bottom: solid 1px black;
+    > div.title {
+      font-weight: bold;
+      background-color: #ddd;
+    }
+    > div {
+      display: inline-block;
+      margin: 2px 5px;
+    }
+  }
+
+  .rotation {
+    input {
+      width: 50px;
+    }
+  }
+}
