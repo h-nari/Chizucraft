@@ -2,7 +2,7 @@
   height: 70vh;
 }
 
-#controller {
+.chizu-controller {
   height: 30vh;
   margin: 10px;
   padding: 10px;
@@ -16,8 +16,10 @@
       background-color: #ddd;
     }
     > div {
-      display: inline-block;
       margin: 2px 5px;
+    }
+    div {
+      display: inline-block;
     }
   }
 
@@ -25,5 +27,19 @@
     input {
       width: 50px;
     }
+  }
+
+  .map-origin {
+    width: 320px;
+  }
+}
+
+div.label {
+  font-weight: bold;
+  margin-left: 10px;
+  margin-right: 3px;
+  div {
+    font-weight: normal;
+    font-style: italic;
   }
 }

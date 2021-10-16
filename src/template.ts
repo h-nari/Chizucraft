@@ -16,7 +16,7 @@ export function range(start: number, end: number): number[] {
   if (start < end)
     for (let i = start; i < end; i++)
       r.push(i);
-  else if (start < end) {
+  else if (start > end) {
     for (let i = start; i > end; i--)
       r.push(i);
   }
