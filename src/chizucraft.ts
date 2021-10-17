@@ -1,5 +1,5 @@
 import * as L from 'leaflet';
-import { button, div, input, label, option, select, selected } from './tag';
+import { a, button, div, input, label, option, select, selected } from './tag';
 import { checkbox, range, row } from './template';
 
 let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>";
@@ -13,6 +13,7 @@ interface cc_stat {
     row: number;
     grid_size: number;
   };
+  filename?: string;
 };
 
 export class Chizucraft {
@@ -30,7 +31,7 @@ export class Chizucraft {
     this.map = L.map('map');
     this.stat = {
       blocksize: 1,
-      marker: { disp: false, column: 1, row: 1, grid_size: 2048 }
+      marker: { disp: false, column: 1, row: 1, grid_size: 2048 },
     };
     console.log(attribution);
     console.log(this.tile_attr);
@@ -128,7 +129,15 @@ export class Chizucraft {
         button({ class: 'btn btn-sm btn-primary btn-set-map-origin' }, '地図をクリックして指定')),
       row('ピクセル化',
         div('使用するzool level'),
-        select(...range(this.map.getMaxZoom(), 8).map(z => option({ value: z }, z))))
+        select(...range(this.map.getMaxZoom(), 8).map(z => option({ value: z }, z)))),
+      row('ファイル',
+        div(
+          div('ファイル名'),
+          div({ class: 'filename' }, this.stat.filename || '%noname%')),
+        input({ type: 'file', id: 'input-file-load', style: 'display:none' }),
+        button({ class: 'btn btn-sm btn-primary btn-file-load' }, 'Load'),
+        a({ class: 'btn btn-sm btn-primary btn-file-save' }, 'Save')
+      ),
     );
   }
 
@@ -197,6 +206,30 @@ export class Chizucraft {
     $('.btn-set-map-origin').on('click', e => {
       console.log('set origin');
     });
+    // load
+    $('.btn-file-load').on('click', e => {
+      this.fileLoad();
+    });
+    $('#input-file-load').on('change', async e => {
+      let elem = e.target as HTMLInputElement;
+      if (elem.files && elem.files.length > 0) {
+        let file = elem.files[0];
+        let json = await file.text();
+        this.stat = JSON.parse(json) as cc_stat;
+        this.stat.filename ||= file.name;
+        $('#controller').html(this.html());
+        this.bind();
+        this.dispCurrentMapState();
+        if (this.stat.marker.disp)
+          this.drawMarker();
+      }
+    });
+
+    // save
+    $('.btn-file-save').on('click', e => {
+      this.fileSave(e.currentTarget as HTMLAnchorElement);
+    });
+
   }
 
   drawMarker() {
@@ -255,5 +288,22 @@ export class Chizucraft {
 
     this.dispCurrentMapState();
     this.saveView();
+  }
+
+  fileLoad() {
+    console.log('fileLoad');
+    let fileElem = document.getElementById('input-file-load');
+    if (fileElem)
+      fileElem.click();
+  }
+
+  fileSave(target: HTMLAnchorElement) {
+    console.log('download');
+    let content = JSON.stringify(this.stat, null, 2);
+    let blob = new Blob([content], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    target.download = this.stat.filename || '';
+    target.href = url;
+    setTimeout(() => { URL.revokeObjectURL(url); }, 1E3);
   }
 };
