@@ -1,5 +1,6 @@
 const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { webpack } = require('webpack');
 
 
 var app = {
@@ -32,41 +33,41 @@ var app = {
 };
 
 var css = {
-  mode: 'development',
-  entry: {
-      style: path.join(__dirname, 'src', 'app.scss')
-  },
-  devtool: "source-map",
-  output: {
-      path: path.resolve(__dirname, 'dist'),
-      filename: 'app.css'
-  },
-  module: {
-      rules: [
-          {
-              test: /\.scss/,
-              use: [
-                  {
-                      loader: MiniCssExtractPlugin.loader,
-                  },
-                  {
-                      loader: "css-loader",
-                      options: {
-                          sourceMap: true,
-                          importLoaders: 2
-                      }
-                  },
-                  {
-                      loader: "sass-loader",
-                      options: { sourceMap: true }
-                  }
-              ]
-          }
-      ],
-  },
-  plugins: [
-      new MiniCssExtractPlugin({ filename: 'style.css' }),
-  ]
+    mode: 'development',
+    entry: {
+        style: path.join(__dirname, 'src', 'app.scss')
+    },
+    devtool: "source-map",
+    output: {
+        path: path.resolve(__dirname, 'dist'),
+        filename: 'app.css'
+    },
+    module: {
+        rules: [
+            {
+                test: /\.scss/,
+                use: [
+                    {
+                        loader: MiniCssExtractPlugin.loader,
+                    },
+                    {
+                        loader: "css-loader",
+                        options: {
+                            sourceMap: true,
+                            importLoaders: 2
+                        }
+                    },
+                    {
+                        loader: "sass-loader",
+                        options: { sourceMap: true }
+                    }
+                ]
+            }
+        ],
+    },
+    plugins: [
+        new MiniCssExtractPlugin({ filename: 'style.css' }),
+    ]
 }
 
-module.exports = [app,css];
+module.exports = [app, css];

@@ -1,5 +1,13 @@
-#map {
+.tab-pane {
   height: 70vh;
+  overflow: auto;
+  #map {
+    height: 70vh;
+  }
+  #work-canvas1, #work-canvas2 {
+    border: 1px solid black;
+    margin: 10px;
+  }
 }
 
 .chizu-controller {

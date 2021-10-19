@@ -1,4 +1,5 @@
 import * as L from 'leaflet';
+import { MinecraftMap, ProjectionParameter } from './minecraftMap';
 import { a, button, div, input, label, option, select, selected } from './tag';
 import { checkbox, range, row } from './template';
 
@@ -7,6 +8,7 @@ let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' tar
 interface cc_stat {
   blocksize: number;    // minecraft block size[m]
   origin?: [number, number];
+  zoom: number;
   marker: {
     disp: boolean;
     column: number;
@@ -31,6 +33,7 @@ export class Chizucraft {
     this.map = L.map('map');
     this.stat = {
       blocksize: 1,
+      zoom: 15,
       marker: { disp: false, column: 1, row: 1, grid_size: 2048 },
     };
     console.log(attribution);
@@ -73,11 +76,10 @@ export class Chizucraft {
       ),
       row('スケール',
         div(select({ class: 'block-size' },
-          option({ value: 1 }, '1ブロック1m'),
-          option({ value: 10 }, '1ブロック10m'),
-          option({ value: 100 }, '1ブロック100m'),
-          option({ value: 1000 }, '1ブロック1km'),
-          option({ value: 0 }, '任意に設定'))),
+          ...[1, 10, 100, 1000, 0].map(v => option({
+            value: v, selected: selected(v == this.stat.blocksize)
+          }, v ? `1ブロック${v}m` : '任意に設定'))
+        )),
         div({ class: 'rotation' },
           '回転 ',
           input({ type: 'number', value: 0 }))
@@ -129,7 +131,8 @@ export class Chizucraft {
         button({ class: 'btn btn-sm btn-primary btn-set-map-origin' }, '地図をクリックして指定')),
       row('ピクセル化',
         div('使用するzool level'),
-        select(...range(this.map.getMaxZoom(), 8).map(z => option({ value: z }, z)))),
+        select({ class: 'mmap-zoom' }, ...range(this.map.getMaxZoom(), 4).map(z => option({ value: z, selected: selected(this.stat.zoom == z) }, z))),
+        button({ class: 'btn btn-sm btn-primary btn-pixel-test' }, 'Test')),
       row('ファイル',
         div(
           div('ファイル名'),
@@ -169,6 +172,11 @@ export class Chizucraft {
   }
 
   bind() {
+    $('#controller .block-size').on('change', e => {
+      let bs = parseInt($(e.currentTarget).val() as string);
+      this.stat.blocksize = bs == 0 ? 1 : bs;
+      this.saveStat();
+    });
     $('#controller .chk-disp-marker input').on('change', e => {
       let v = $(e.currentTarget).prop('checked');
       if (v)
@@ -186,6 +194,10 @@ export class Chizucraft {
         this.drawMarker();
       this.saveStat();
     });
+    $('#controller .mmap-zoom').on('change', e => {
+      this.stat.zoom = Number($(e.currentTarget).val());
+      this.saveStat();
+    })
 
     // 基準点クリア
     $('.btn-clear-map-origin').on('click', e => {
@@ -205,6 +217,10 @@ export class Chizucraft {
     // 地図をクリックして指定
     $('.btn-set-map-origin').on('click', e => {
       console.log('set origin');
+    });
+    // test
+    $('.btn-pixel-test').on('click', e => {
+      this.pixel_test();
     });
     // load
     $('.btn-file-load').on('click', e => {
@@ -305,5 +321,44 @@ export class Chizucraft {
     target.download = this.stat.filename || '';
     target.href = url;
     setTimeout(() => { URL.revokeObjectURL(url); }, 1E3);
+  }
+
+  async pixel_test() {
+    let s = this.stat;
+    if (s.origin) {
+      let oLatLng = L.latLng(s.origin);
+      let param: ProjectionParameter = {
+        zoom: s.zoom,
+        oPoint: this.map.project(oLatLng, s.zoom),
+        origin: [0, 0],
+        blocksize: s.blocksize,
+        mPerPoint: this.getMPerPoint()
+      };
+      let mmap = new MinecraftMap(param);
+      console.log('pixel_test');
+      mmap.drawTileOnCavnas1(0, 0);
+    }
+  }
+
+  // 現在の原点のポイントあたりの距離[m]をx,y方向毎に返す
+  getMPerPoint() {
+    let o = this.stat.origin;
+    if (o) {
+      let zoom = this.stat.zoom;
+      let oLatLng = L.latLng(o);
+      let nLatLng = L.latLng([o[0] + 1, o[1]]);
+      let eLatLng = L.latLng([o[0], o[1] + 1]);
+      let oPoint = this.map.project(oLatLng, zoom);
+      let nPoint = this.map.project(nLatLng, zoom);
+      let ePoint = this.map.project(eLatLng, zoom);
+      let dx = this.map.distance(oLatLng, eLatLng);
+      let dy = this.map.distance(oLatLng, nLatLng);
+      let x = dx / (ePoint.x - oPoint.x);
+      let y = dy / (oPoint.y - nPoint.y);
+      console.log('x:', x, 'y:', y);
+      return { x, y };
+    } else {
+      return { x: 1, y: 1 };
+    }
   }
 };

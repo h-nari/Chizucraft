@@ -11,7 +11,29 @@
 </head>
 
 <body>
-  <div id="map"></div>
+  <div class="tab-bar">
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link active" href="#" target="map">地理院地図</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" target="pane-minecraft-map">Minecraft地図</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" target="pane-work-canvas">Work Canvas</a>
+      </li>
+    </ul>
+    <div class="tab-pane">
+      <div class="tab" id="map"></div>
+      <div class="tab hidden" id="pane-minecraft-map">
+        <canvas id="minecraft-map" width="1000" height="800"></canvas>
+      </div>
+      <div class="tab hidden" id="pane-work-canvas">
+        <canvas id="work-canvas1" width="512" height="512"></canvas>
+        <canvas id="work-canvas2" width="128" height="128"></canvas>
+      </div>
+    </div>
+  </div>
   <div id="controller"></div>
   <script src="./node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
   <script src="./node_modules/jquery/dist/jquery.min.js"></script>
