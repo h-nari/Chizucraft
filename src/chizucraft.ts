@@ -11,8 +11,6 @@ interface cc_stat {
   zoom: number;
   marker: {
     disp: boolean;
-    column: number;
-    row: number;
     grid_size: number;
   };
   filename?: string;
@@ -34,7 +32,7 @@ export class Chizucraft {
     this.stat = {
       blocksize: 1,
       zoom: 15,
-      marker: { disp: false, column: 1, row: 1, grid_size: 2048 },
+      marker: { disp: false, grid_size: 2048 },
     };
     console.log(attribution);
     console.log(this.tile_attr);
@@ -88,26 +86,7 @@ export class Chizucraft {
         div({ class: 'chk-disp-marker' },
           input({ type: 'checkbox', checked: selected(this.stat.marker.disp) }),
           label('表示')),
-        div('マーカーサイズ 縦:',
-          select({ class: 'marker-row' },
-            option({ value: 1 }, '1'),
-            option({ value: 2 }, '2'),
-            option({ value: 3 }, '3'),
-            option({ value: 4 }, '4'),
-            option({ value: 5 }, '5'),
-            option({ value: 0 }, '無限')
-          )),
-        div({ class: 'd-inline-block' }, '✖'),
-        div('横:',
-          select({ class: 'marker-column' },
-            option({ value: 1 }, '1'),
-            option({ value: 2 }, '2'),
-            option({ value: 3 }, '3'),
-            option({ value: 4 }, '4'),
-            option({ value: 5 }, '5'),
-            option({ value: 0 }, '無限')
-          )),
-        div('グリッドサイズ ',
+        div('マーカーサイズ ',
           select({ class: 'grid-size' },
             ...range(7, 12).map(i => {
               let s = 2 ** i;
@@ -263,18 +242,27 @@ export class Chizucraft {
       cLatlng = L.latLng(this.stat.origin);
     }
 
-    let nLatLng = L.latLng(cLatlng.lat + 1, cLatlng.lng);
-    let wLatLng = L.latLng(cLatlng.lat, cLatlng.lng - 1);
-    let latpm = 1 / map.distance(cLatlng, nLatLng);
-    let lngpm = 1 / map.distance(cLatlng, wLatLng);
+    let marker_opt = { color: 'blue', weight: 1 };
+    let nLatLng1 = L.latLng(cLatlng.lat + 1, cLatlng.lng);
+    let wLatLng1 = L.latLng(cLatlng.lat, cLatlng.lng - 1);
+    let latpm = 1 / map.distance(cLatlng, nLatLng1);
+    let lngpm = 1 / map.distance(cLatlng, wLatLng1);
     let m = this.stat.marker;
-    let w = m.grid_size * m.column;
-    let h = m.grid_size * m.column;
-    let dLatlng = L.latLng(cLatlng.lat - latpm * h, cLatlng.lng + lngpm * w);
-    let bounds = L.latLngBounds(cLatlng, dLatlng);
-    let marker = L.rectangle(bounds, { color: "blue", weight: 1 });
-    marker.addTo(map);
-    this.markers.push(marker);
+    let w = m.grid_size / 2;
+    let h = m.grid_size / 2;
+    let nwLatlng = L.latLng(cLatlng.lat + latpm * h, cLatlng.lng - lngpm * w);
+    let seLatlng = L.latLng(cLatlng.lat - latpm * h, cLatlng.lng + lngpm * w);
+    let bounds = L.latLngBounds(nwLatlng, seLatlng);
+    let marker = L.rectangle(bounds, marker_opt);
+    this.markers.push(marker.addTo(map));
+    this.markers.push(L.polyline([
+      [cLatlng.lat + latpm * h, cLatlng.lng],
+      [cLatlng.lat - latpm * h, cLatlng.lng]],
+      marker_opt).addTo(map));
+    this.markers.push(L.polyline([
+      [cLatlng.lat, cLatlng.lng - lngpm * w],
+      [cLatlng.lat, cLatlng.lng + lngpm * w]],
+      marker_opt).addTo(map));
   }
 
   removeMarker() {
