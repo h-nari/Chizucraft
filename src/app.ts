@@ -1,3 +1,4 @@
+import { camelCase } from 'jquery';
 import { Chizucraft } from './chizucraft';
 
 declare global {
@@ -15,6 +16,9 @@ $(() => {
     let target = $(e.currentTarget).prop('target');
     if (target) {
       $('#' + target).removeClass('hidden');
+    }
+    if(target == 'pane-minecraft-map'){
+      window.cc.mineMap.update_canvas_size();
     }
     e.preventDefault();
   });

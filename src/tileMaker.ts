@@ -1,6 +1,5 @@
 import * as L from 'leaflet';
 
-
 export interface ProjectionParameter {
   zoom: number;
   oPoint: L.Point;            // 原点のtile上での座標
@@ -9,7 +8,7 @@ export interface ProjectionParameter {
   mPerPoint: { x: number, y: number }; // 1Pointあたりの距離
 };
 
-export class MinecraftMap {
+export class TileMaker {
   private url_template = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
   public param: ProjectionParameter;
 
@@ -27,7 +26,24 @@ export class MinecraftMap {
     });
   }
 
-  drawTileOnCavnas1(x: number, y: number) {
+  getTileImage2(arg: { x: number, y: number, z: number }): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      let url = this.getUrl(arg);
+      $.ajax({
+        url, type: 'GET',
+        success: (data, dataType) => {
+          console.log(dataType);
+          console.log(typeof data);
+          console.log(data.length);
+        },
+        error: (xhr, ts, eh) => {
+          console.log(eh);
+        }
+      });
+    });
+  }
+
+  async getTile(x: number, y: number) {
     let canvas1 = document.getElementById('work-canvas1') as HTMLCanvasElement | null;
     if (!canvas1) throw new Error('work-canvas1 not found');
     let ctx1 = canvas1.getContext('2d');
@@ -56,33 +72,33 @@ export class MinecraftMap {
         jobs.push(this.getTileImage({ x: tx, y: ty, z: this.param.zoom }));
       }
     }
-    Promise.all(jobs).then(images => {
-      console.log('load done', images.length, 'images');
-      if (ctx1) {
-        ctx1.save();
-        ctx1.scale(scale, scale);
-        for (let ty = ty0; ty <= ty1; ty++) {
-          for (let tx = tx0; tx <= tx1; tx++) {
-            let img = images.shift();
-            if (img)
-              ctx1.drawImage(img, 256 * (tx - tx0), 256 * (ty - ty0));
-          }
+    let images = await Promise.all(jobs);
+
+    if (ctx1) {
+      ctx1.save();
+      ctx1.scale(scale, scale);
+      for (let ty = ty0; ty <= ty1; ty++) {
+        for (let tx = tx0; tx <= tx1; tx++) {
+          let img = images.shift();
+          if (img)
+            ctx1.drawImage(img, 256 * (tx - tx0), 256 * (ty - ty0));
         }
-        ctx1.restore();
       }
-      let canvas2 = document.getElementById('work-canvas2') as HTMLCanvasElement | null;
-      if (!canvas2) throw new Error('work-canvas2 not found');
-      let ctx2 = canvas2.getContext('2d');
-      if (!ctx2) throw new Error('getContext of work-canvas2 failed');
-      if (canvas1) {
-        let sx = (x0 - tx0 * 256) * scale;
-        let sy = (y0 - ty0 * 256) * scale;
-        let sw = Math.max((x1 - x0) * scale, 1);
-        let sh = Math.max((y1 - y0) * scale, 1);
-        console.log('scale:', scale, 'sx:', sx, 'sy: ', sy, 'sw: ', sw, 'sh: ', sh);
-        ctx2.drawImage(canvas1, sx, sy, sw, sh, 0, 0, 128, 128);
-      }
-    });
+      ctx1.restore();
+    }
+    let canvas2 = document.getElementById('work-canvas2') as HTMLCanvasElement | null;
+    if (!canvas2) throw new Error('work-canvas2 not found');
+    let ctx2 = canvas2.getContext('2d');
+    if (!ctx2) throw new Error('getContext of work-canvas2 failed');
+    if (canvas1) {
+      let sx = (x0 - tx0 * 256) * scale;
+      let sy = (y0 - ty0 * 256) * scale;
+      let sw = Math.max((x1 - x0) * scale, 1);
+      let sh = Math.max((y1 - y0) * scale, 1);
+      console.log('scale:', scale, 'sx:', sx, 'sy: ', sy, 'sw: ', sw, 'sh: ', sh);
+      ctx2.drawImage(canvas1, sx, sy, sw, sh, 0, 0, 128, 128);
+      return ctx2.getImageData(0, 0, 128, 128);
+    }
   }
 
   getUrl(param: { x: number, y: number, z: number }) {
@@ -91,32 +107,4 @@ export class MinecraftMap {
     )
   }
 
-  drawTileOnCanvas2(x: number, y: number) {
-
-  }
-
-  test() {
-    let m = {
-      x: Math.floor(this.param.oPoint.x / 256),
-      y: Math.floor(this.param.oPoint.y / 256),
-      z: this.param.zoom
-    };
-    let url = this.url_template.replace(/\{(x|y|z)\}/g, (substring: string, ...arg: string[]): string => {
-      return String(m[arg[0] as 'x' | 'y' | 'z']) || `_${arg[0]} undefined_`;
-    })
-    console.log('url:', url);
-    let canvas = document.getElementById('work-canvas1') as HTMLCanvasElement | null;
-    if (canvas) {
-      let ctx = canvas.getContext('2d');
-      let img = new Image();
-      img.onload = function (e) {
-        console.log('loaded')
-        if (ctx) {
-          ctx.rotate(30 / 180 * Math.PI);
-          ctx.drawImage(img, 200, 0);
-        }
-      };
-      img.src = url;
-    }
-  }
 }

@@ -1,3 +1,5 @@
+@use "mineMap.scss";
+
 .tab-pane {
   height: 70vh;
   overflow: auto;
@@ -7,6 +9,10 @@
   #work-canvas1, #work-canvas2 {
     border: 1px solid black;
     margin: 10px;
+  }
+
+  .tab {
+    height: 100%;
   }
 }
 

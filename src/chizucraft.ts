@@ -1,7 +1,8 @@
 import * as L from 'leaflet';
-import { MinecraftMap, ProjectionParameter } from './minecraftMap';
+import { TileMaker, ProjectionParameter } from './tileMaker';
 import { a, button, div, input, label, option, select, selected } from './tag';
 import { checkbox, range, row } from './template';
+import { MineMap } from './mineMap';
 
 let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>";
 
@@ -26,6 +27,7 @@ export class Chizucraft {
   public markers: L.Layer[] = [];
   public cLatLng: L.LatLng; // 画面中心の座標
   public lockMarker = false;
+  public mineMap: MineMap;
 
   constructor() {
     this.map = L.map('map');
@@ -34,8 +36,6 @@ export class Chizucraft {
       zoom: 15,
       marker: { disp: false, grid_size: 2048 },
     };
-    console.log(attribution);
-    console.log(this.tile_attr);
     L.tileLayer(this.url_template, this.tile_attr).addTo(this.map);
     L.control.scale().addTo(this.map);
     this.loadView();
@@ -64,6 +64,8 @@ export class Chizucraft {
     this.dispCurrentMapState();
     if (this.stat.marker.disp)
       this.drawMarker();
+    this.mineMap = new MineMap('pane-minecraft-map');
+    this.saveStat();
   }
 
   html() {
@@ -142,6 +144,19 @@ export class Chizucraft {
 
   saveStat() {
     localStorage.setItem('chizucraft_stat', JSON.stringify(this.stat));
+
+    let s = this.stat;
+    if (s.origin) {
+      let oLatLng = L.latLng(s.origin);
+      let param: ProjectionParameter = {
+        zoom: s.zoom,
+        oPoint: this.map.project(oLatLng, s.zoom),
+        origin: [0, 0],
+        blocksize: s.blocksize,
+        mPerPoint: this.getMPerPoint()
+      };
+      this.mineMap.setParam(param);
+    }
   }
 
   loadStat() {
@@ -322,9 +337,16 @@ export class Chizucraft {
         blocksize: s.blocksize,
         mPerPoint: this.getMPerPoint()
       };
-      let mmap = new MinecraftMap(param);
+      let mmap = new TileMaker(param);
       console.log('pixel_test');
-      mmap.drawTileOnCavnas1(0, 0);
+      if (true) {
+        mmap.getTile(0, 0);
+      } else {
+        let p = param.oPoint;
+        let x = Math.floor(p.x / 256);
+        let y = Math.floor(p.y / 256);
+        mmap.getTileImage2({ x, y, z: param.zoom });
+      }
     }
   }
 
