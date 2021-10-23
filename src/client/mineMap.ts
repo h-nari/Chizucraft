@@ -27,15 +27,19 @@ export class MineMap {
       this.clear_tile_buf();
     };
     $('#mine-map-canvas').on('click', async e => {
-      let tx = this.ct.tileX(e.clientX);
-      let ty = this.ct.tileY(e.clientY);
-      console.log(`click! (${tx},${ty})`);
+      let x = e.clientX - e.currentTarget.offsetLeft;
+      let y = e.clientY - e.currentTarget.offsetTop;
+      let tx = this.ct.tileX(x);
+      let ty = this.ct.tileY(y);
       if (this.param) {
         let tm = new TileMaker(this.param);
-        this.tileBuf[tx + ',' + ty].image = await tm.getTile(tx, ty);
+        let key = tx + ',' + ty;
+        let tile = this.tileBuf[key];
+        if (!tile) tile = this.tileBuf[key] = {};
+        if (!tile.image)
+          tile.image = await tm.getTile(tx, ty);
         this.draw();
       }
-
     });
   }
 

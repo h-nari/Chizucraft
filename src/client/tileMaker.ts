@@ -19,6 +19,7 @@ export class TileMaker {
   getTileImage(arg: { x: number, y: number, z: number }): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       let img = new Image();
+      img.crossOrigin = "Anonymous";
       img.src = this.getUrl(arg);
       img.onload = function (e) {
         resolve(img);

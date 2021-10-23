@@ -6,10 +6,10 @@ const { webpack } = require('webpack');
 var app = {
     mode: 'development',
     target: 'web',
-    entry: path.join(__dirname, 'src', 'app.ts'),
+    entry: path.join(__dirname, 'src', 'client', 'app.ts'),
     output: {
         filename: 'app.js',
-        path: path.resolve(__dirname, 'dist')
+        path: path.resolve(__dirname, 'public')
     },
     node: {
         __dirname: false,
@@ -19,7 +19,7 @@ var app = {
         rules: [{
             test: /.ts?$/,
             include: [
-                path.resolve(__dirname, 'src'),
+                path.resolve(__dirname, 'src', 'client'),
             ],
             exclude: [
                 path.resolve(__dirname, 'node_modules'),
@@ -35,11 +35,11 @@ var app = {
 var css = {
     mode: 'development',
     entry: {
-        style: path.join(__dirname, 'src', 'app.scss')
+        style: path.join(__dirname, 'src', 'client', 'app.scss')
     },
     devtool: "source-map",
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, 'public'),
         filename: 'app.css'
     },
     module: {
