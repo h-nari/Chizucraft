@@ -12,4 +12,15 @@ export class CoordinateTransformation {
   fromY(y: number) { return (y - this.by) / this.ay; }
   tileX(x: number) { return Math.floor(this.fromX(x) / 128); }
   tileY(y: number) { return Math.floor(this.fromY(y) / 128); }
+
+  zoom(factor: number, cx: number, cy: number) {
+    this.bx = (1 - factor) * cx + factor * this.bx;
+    this.by = (1 - factor) * cy + factor * this.by;
+    this.ax *= factor;
+    this.ay *= factor;
+  }
+  pan(dx: number, dy: number) {
+    this.bx += dx;
+    this.by += dy;
+  }
 }

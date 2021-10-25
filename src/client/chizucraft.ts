@@ -339,14 +339,7 @@ export class Chizucraft {
       };
       let mmap = new TileMaker(param);
       console.log('pixel_test');
-      if (true) {
-        mmap.getTile(0, 0);
-      } else {
-        let p = param.oPoint;
-        let x = Math.floor(p.x / 256);
-        let y = Math.floor(p.y / 256);
-        mmap.getTileImage2({ x, y, z: param.zoom });
-      }
+      mmap.getTile(0, 0);
     }
   }
 

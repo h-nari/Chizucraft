@@ -27,23 +27,6 @@ export class TileMaker {
     });
   }
 
-  getTileImage2(arg: { x: number, y: number, z: number }): Promise<HTMLImageElement> {
-    return new Promise((resolve, reject) => {
-      let url = this.getUrl(arg);
-      $.ajax({
-        url, type: 'GET',
-        success: (data, dataType) => {
-          console.log(dataType);
-          console.log(typeof data);
-          console.log(data.length);
-        },
-        error: (xhr, ts, eh) => {
-          console.log(eh);
-        }
-      });
-    });
-  }
-
   async getTile(x: number, y: number) {
     let canvas1 = document.getElementById('work-canvas1') as HTMLCanvasElement | null;
     if (!canvas1) throw new Error('work-canvas1 not found');
@@ -63,13 +46,11 @@ export class TileMaker {
     let scale = 1.0;
     while (scale * (x1 - x0) >= 128 * 2 && scale * (y1 - y0) > 128 * 2)
       scale /= 2;
-    console.log('tx0:', tx0, 'tx1:', tx1, 'ty0:', ty0, 'ty1:', ty1);
     ctx1.fillStyle = 'lightgray';
     ctx1.fillRect(0, 0, canvas1.width, canvas1.height);
     let jobs: Promise<HTMLImageElement>[] = [];
     for (let ty = ty0; ty <= ty1; ty++) {
       for (let tx = tx0; tx <= tx1; tx++) {
-        console.log(`load ${tx},${ty}`);
         jobs.push(this.getTileImage({ x: tx, y: ty, z: this.param.zoom }));
       }
     }
@@ -96,7 +77,6 @@ export class TileMaker {
       let sy = (y0 - ty0 * 256) * scale;
       let sw = Math.max((x1 - x0) * scale, 1);
       let sh = Math.max((y1 - y0) * scale, 1);
-      console.log('scale:', scale, 'sx:', sx, 'sy: ', sy, 'sw: ', sw, 'sh: ', sh);
       ctx2.drawImage(canvas1, sx, sy, sw, sh, 0, 0, 128, 128);
       return ctx2.getImageData(0, 0, 128, 128);
     }
