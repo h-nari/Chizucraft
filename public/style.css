@@ -12,13 +12,14 @@ div.mine-map {
 }
 
 .tab-pane {
-  height: 70vh;
+  height: 95vh;
   overflow: auto;
 }
 .tab-pane #map {
-  height: 70vh;
+  height: 68vh;
 }
-.tab-pane #work-canvas1, .tab-pane #work-canvas2 {
+.tab-pane #work-canvas1,
+.tab-pane #work-canvas2 {
   border: 1px solid black;
   margin: 10px;
 }
@@ -27,7 +28,6 @@ div.mine-map {
 }
 
 .chizu-controller {
-  height: 30vh;
   margin: 10px;
   padding: 10px;
   border: solid 1px black;

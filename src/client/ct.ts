@@ -8,10 +8,12 @@ export class CoordinateTransformation {
 
   toX(x: number) { return this.ax * x + this.bx; }
   toY(y: number) { return this.ay * y + this.by; }
-  fromX(x: number) { return (x - this.bx) / this.ax; }
-  fromY(y: number) { return (y - this.by) / this.ay; }
-  tileX(x: number) { return Math.floor(this.fromX(x) / 128); }
-  tileY(y: number) { return Math.floor(this.fromY(y) / 128); }
+  fromX(sx: number) { return (sx - this.bx) / this.ax; }
+  fromY(sy: number) { return (sy - this.by) / this.ay; }
+  tileX(x: number) { return Math.floor(x / 128); }
+  tileY(y: number) { return Math.floor(y / 128); }
+  s2tileX(sx: number) { return this.tileX(this.fromX(sx)); }
+  s2tileY(sy: number) { return this.tileY(this.fromY(sy)); }
 
   zoom(factor: number, cx: number, cy: number) {
     this.bx = (1 - factor) * cx + factor * this.bx;

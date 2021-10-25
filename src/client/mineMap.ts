@@ -12,6 +12,10 @@ export class MineMap {
   private pressed: boolean = false;
   private moved: boolean = false;
   private redrawing: boolean = false;
+  private mx0 = 50;
+  private mx1 = 50;
+  private my0 = 20;
+  private my1 = 20;
 
   constructor(targetId: string) {
     $('#' + targetId).html(this.html());
@@ -103,27 +107,31 @@ export class MineMap {
     this.draw();
   }
 
-  draw() {
+  async draw() {
     let c = this.canvas;
     let ctx = c.getContext('2d');
     if (c.width == 0 || c.height == 0 || !ctx) return;
-    ctx.fillStyle = 'lightgray';
+    ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, c.width, c.height);
     if (this.ct.ax < 0.3) {
       ctx.fillStyle = 'blue';
       ctx.textAlign = 'center';
       ctx.fillText(`(scale: ${this.ct.ax})`, c.width / 2, c.height / 2);
     } else {
-      let tx0 = Math.floor(this.ct.fromX(0) / 128);
-      let tx1 = Math.floor(this.ct.fromX(c.width) / 128);
-      let ty0 = Math.floor(this.ct.fromY(0) / 128);
-      let ty1 = Math.floor(this.ct.fromY(c.height) / 128);
+      let tx0 = this.ct.s2tileX(0);
+      let tx1 = this.ct.s2tileX(c.width - 1);
+      let ty0 = this.ct.s2tileY(0);
+      let ty1 = this.ct.s2tileY(c.height - 1);
+      let jobs: Promise<void>[] = [];
       for (let ty = ty0; ty <= ty1; ty++) {
         for (let tx = tx0; tx <= tx1; tx++) {
-          this.drawTile(ctx, tx, ty);
+          jobs.push(this.drawTile(ctx, tx, ty));
         }
       }
+      await Promise.all(jobs);
+      console.log(jobs.length + ' jobs done');
     }
+    this.drawXFrame();
   }
 
   redraw() {
@@ -150,6 +158,8 @@ export class MineMap {
       }
     }
 
+    let w = this.ct.ax * 128;
+    let h = this.ct.ay * 128;
     if (buf && buf.image) {
       let im = await createImageBitmap(buf.image);
       ctx.save();
@@ -159,14 +169,16 @@ export class MineMap {
       ctx.drawImage(im, 0, 0);
       ctx.restore();
     } else {
-      let w = this.ct.ax * 128;
-      let h = this.ct.ay * 128;
-      ctx.strokeStyle = ctx.fillStyle = 'blue';
-      ctx.lineWidth = 1.0;
-      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = 'blue';
       ctx.textAlign = 'center';
       ctx.fillText(`(${tx},${ty})`, x + w / 2, y + h / 2);
     }
+    ctx.save();
+    ctx.strokeStyle = 'blue';
+    ctx.lineWidth = 1.0;
+    ctx.globalAlpha = 0.5;
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
   }
 
   zoom(factor: number, e: JQuery.TriggeredEvent) {
@@ -174,6 +186,47 @@ export class MineMap {
     let y = (e.clientY || 0) - e.currentTarget.offsetTop;
     this.ct.zoom(factor, x, y);
     this.draw();
+  }
+
+  drawXFrame() {
+    let c = this.canvas;
+    let ctx = c.getContext('2d');
+    if (ctx) {
+      ctx.rect(this.mx0, 0, c.width - (this.mx0 + this.mx1), this.my0);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      let x1 = c.width - this.mx1;
+      let tx0 = this.ct.s2tileX(this.mx0);
+      let tx1 = this.ct.s2tileX(x1);
+
+      if (16 * this.ct.ax > 20) {
+        ctx.strokeStyle = 'green';
+        for (let xx = tx0 * 128; xx < (tx1 + 1) * 128; xx += 16) {
+          let x = this.ct.toX(xx);
+          if (x > this.mx0 && x < x1) {
+            ctx.beginPath();
+            ctx.moveTo(x, this.my0 / 2);
+            ctx.lineTo(x, this.my0);
+            ctx.stroke();
+          }
+        }
+      }
+
+      ctx.strokeStyle = 'blue';
+      for (let tx = tx0; tx <= tx1; tx++) {
+        let x = this.ct.toX(tx * 128);
+        if (x > this.mx0 && x < x1) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, this.my0);
+          ctx.stroke();
+        }
+      }
+    }
   }
 
 }

@@ -14,7 +14,7 @@
   <div class="tab-bar">
     <ul class="nav nav-tabs">
       <li class="nav-item">
-        <a class="nav-link active" href="#" target="map">地理院地図</a>
+        <a class="nav-link active" href="#" target="map-pane">地理院地図</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="#" target="pane-minecraft-map">Minecraft地図</a>
@@ -24,7 +24,10 @@
       </li>
     </ul>
     <div class="tab-pane">
-      <div class="tab" id="map"></div>
+      <div class="tab" id="map-pane">
+        <div id="map"></div>
+        <div id="controller"></div>
+      </div>
       <div class="tab hidden" id="pane-minecraft-map">
       </div>
       <div class="tab hidden" id="pane-work-canvas">
@@ -33,7 +36,6 @@
       </div>
     </div>
   </div>
-  <div id="controller"></div>
   <script src="js/bootstrap.min.js"></script>
   <script src="jquery.min.js"></script>
   <script src="jquery-confirm.min.js"></script>
