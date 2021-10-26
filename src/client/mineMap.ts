@@ -111,8 +111,12 @@ export class MineMap {
     let c = this.canvas;
     let ctx = c.getContext('2d');
     if (c.width == 0 || c.height == 0 || !ctx) return;
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.save();
+    let region = new Path2D();
+    let w = c.width - (this.mx0 + this.mx1);
+    let h = c.height - (this.my0 + this.my1);
+    region.rect(this.mx0, this.my0, w, h);
+    ctx.clip(region);
     if (this.ct.ax < 0.3) {
       ctx.fillStyle = 'blue';
       ctx.textAlign = 'center';
@@ -131,6 +135,7 @@ export class MineMap {
       await Promise.all(jobs);
       console.log(jobs.length + ' jobs done');
     }
+    ctx.restore();
     this.drawXFrame();
   }
 
