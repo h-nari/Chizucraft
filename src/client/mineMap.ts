@@ -2,11 +2,15 @@ import { div, tag } from "./tag";
 import { CoordinateTransformation } from "./ct";
 import { ProjectionParameter, TileMaker } from "./tileMaker";
 
+interface TileInfo {
+  image?: ImageData;
+};
+
 export class MineMap {
   public canvas: HTMLCanvasElement;
   public ct = new CoordinateTransformation();
   public param: ProjectionParameter | undefined;
-  public tileBuf: { [key: string]: { image?: ImageData } } = {};
+  public tileBuf: { [key: string]: TileInfo } = {};
   private x0: number = 0;
   private y0: number = 0;
   private pressed: boolean = false;
@@ -118,6 +122,8 @@ export class MineMap {
     region.rect(this.mx0, this.my0, w, h);
     ctx.clip(region);
     if (this.ct.ax < 0.3) {
+      ctx.fillStyle = 'white';
+      ctx.fillRect(this.mx0, this.my0, w, h);
       ctx.fillStyle = 'blue';
       ctx.textAlign = 'center';
       ctx.fillText(`(scale: ${this.ct.ax})`, c.width / 2, c.height / 2);
@@ -166,13 +172,17 @@ export class MineMap {
     let w = this.ct.ax * 128;
     let h = this.ct.ay * 128;
     if (buf && buf.image) {
-      let im = await createImageBitmap(buf.image);
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(this.ct.ax, this.ct.ay);
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(im, 0, 0);
-      ctx.restore();
+      if (this.ct.ax > 15)
+        this.drawPixelTile(ctx, tx, ty, buf);
+      else {
+        let im = await createImageBitmap(buf.image);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(this.ct.ax, this.ct.ay);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(im, 0, 0);
+        ctx.restore();
+      }
     } else {
       ctx.fillStyle = 'blue';
       ctx.textAlign = 'center';
@@ -185,6 +195,44 @@ export class MineMap {
     ctx.strokeRect(x, y, w, h);
     ctx.restore();
   }
+
+  drawPixelTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, ti: TileInfo) {
+    let img = ti.image;
+    if (!img) return;
+    let y = this.ct.toY(ty * 128);
+    let w = this.ct.ax;
+    let h = this.ct.ay;
+    let ymin = this.my0 - h;
+    let ymax = this.canvas.height - this.my1;
+    let xmin = this.my0 - w;
+    let xmax = this.canvas.width - this.mx1;
+
+    for (let iy = 0; iy < 128; iy++, y += h) {
+      if (y > ymin && y < ymax) {
+        let x = this.ct.toX(tx * 128);
+        for (let ix = 0; ix < 128; ix++, x += w) {
+          if (x > xmin && x < xmax) {
+            let off = (iy * 128 + ix) * 4;
+            let r = img.data[off];
+            let g = img.data[off + 1];
+            let b = img.data[off + 2];
+            this.drawPixel(ctx, x, y, r, g, b);
+          }
+        }
+      }
+    }
+  }
+
+
+  drawPixel(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, g: number, b: number) {
+    ctx.beginPath();
+    ctx.rect(x, y, this.ct.ax, this.ct.ay);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fill();
+    ctx.strokeStyle = 'lightgray';
+    ctx.stroke();
+  }
+
 
   zoom(factor: number, e: JQuery.TriggeredEvent) {
     let x = (e.clientX || 0) - e.currentTarget.offsetLeft;
