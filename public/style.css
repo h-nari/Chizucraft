@@ -8,7 +8,7 @@ div.mine-map {
 
 #mine-map-canvas {
   width: 100%;
-  height: 100%;
+  height: calc(100% - 60px);
 }
 
 .tab-pane {
@@ -67,6 +67,42 @@ div.label {
 div.label div {
   font-weight: normal;
   font-style: italic;
+}
+
+.menu-back {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  height: 100%;
+  width: 100%;
+}
+.menu-back .menu-stack {
+  padding: 3px;
+  position: absolute;
+  background-color: #444;
+}
+.menu-back .menu-stack button.menu {
+  text-align: left;
+  margin: 0px;
+  display: block;
+  color: white;
+  width: 100%;
+  white-space: nowrap;
+}
+.menu-back .menu-stack div.menu.separator {
+  border-bottom: solid 1px #888;
+}
+.menu-back .menu-stack button.menu:hover {
+  background-color: #888;
+}
+
+button.menu .name {
+  display: inline-block;
+  margin: 0px 10px;
+}
+button.menu .with-check {
+  display: inline-block;
+  width: 24px;
 }
 
 body {

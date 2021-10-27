@@ -1,9 +1,17 @@
 import { div, tag } from "./tag";
 import { CoordinateTransformation } from "./ct";
 import { ProjectionParameter, TileMaker } from "./tileMaker";
+import { Menu } from "./menu";
 
 interface TileInfo {
   image?: ImageData;
+};
+
+interface Area {
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
 };
 
 export class MineMap {
@@ -20,8 +28,18 @@ export class MineMap {
   private mx1 = 50;
   private my0 = 20;
   private my1 = 20;
+  private disp_menu: Menu;
+  private selected?: Area;
 
   constructor(targetId: string) {
+    this.disp_menu = new Menu({ name: '表示' });
+    this.disp_menu.add({
+      name: 'foo'
+    }).add({
+      name: 'bar'
+    });
+
+
     $('#' + targetId).html(this.html());
     this.canvas = document.getElementById('mine-map-canvas') as HTMLCanvasElement;
     this.update_canvas_size();
@@ -31,10 +49,15 @@ export class MineMap {
 
   html() {
     return div({ class: 'mine-map' },
+      div({ class: 'topbar d-flex' },
+        'Topbar',
+        div({ class: 'flex-fill mx-2 status' }, 'status'),
+        this.disp_menu.html()),
       tag('canvas', { id: 'mine-map-canvas' }));
   }
 
   bind() {
+    this.disp_menu.bind();
     window.onresize = e => {
       this.update_canvas_size();
       this.clear_tile_buf();
@@ -43,20 +66,8 @@ export class MineMap {
       if (this.moved) {
         this.moved = false;
       } else {
-        let x = e.clientX - e.currentTarget.offsetLeft;
-        let y = e.clientY - e.currentTarget.offsetTop;
-        let tx = this.ct.tileX(x);
-        let ty = this.ct.tileY(y);
-        if (this.param) {
-          let key = tx + ',' + ty;
-          let tile = this.tileBuf[key];
-          if (!tile) tile = this.tileBuf[key] = {};
-          if (!tile.image) {
-            let tm = new TileMaker(this.param);
-            tile.image = await tm.getTile(tx, ty);
-          }
-          this.draw();
-        }
+        this.select(e);
+        this.draw();
       }
     }).on('mousedown', e => {
       this.pressed = true;
@@ -139,7 +150,6 @@ export class MineMap {
         }
       }
       await Promise.all(jobs);
-      console.log(jobs.length + ' jobs done');
     }
     ctx.restore();
     this.drawXFrame();
@@ -280,6 +290,15 @@ export class MineMap {
         }
       }
     }
+  }
+
+  select(e: JQuery.ClickEvent) {
+    let sx = e.clientX - e.currentTarget.offsetLeft;
+    let sy = e.clientY - e.currentTarget.offsetTop;
+    let x = this.ct.fromX(sx);
+    let y = this.ct.fromY(sy);
+    this.selected = { x, y };
+    $('.topbar .status').text(`(${x},${y})`);
   }
 
 }

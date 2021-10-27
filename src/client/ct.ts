@@ -8,8 +8,8 @@ export class CoordinateTransformation {
 
   toX(x: number) { return this.ax * x + this.bx; }
   toY(y: number) { return this.ay * y + this.by; }
-  fromX(sx: number) { return (sx - this.bx) / this.ax; }
-  fromY(sy: number) { return (sy - this.by) / this.ay; }
+  fromX(sx: number) { return Math.floor((sx - this.bx) / this.ax); }
+  fromY(sy: number) { return Math.floor((sy - this.by) / this.ay); }
   tileX(x: number) { return Math.floor(x / 128); }
   tileY(y: number) { return Math.floor(y / 128); }
   s2tileX(sx: number) { return this.tileX(this.fromX(sx)); }
