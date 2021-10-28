@@ -8,13 +8,15 @@ let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' tar
 
 interface cc_stat {
   blocksize: number;    // minecraft block size[m]
-  origin?: [number, number];
+  origin?: [number, number];  // LatLng
+  minecraft_offset: { x: number, y: number, z: number }; // 原点のminecraft上の座標 [x,y,z]
   zoom: number;
   marker: {
     disp: boolean;
     grid_size: number;
   };
   filename?: string;
+  tab?: string;
 };
 
 export class Chizucraft {
@@ -31,10 +33,12 @@ export class Chizucraft {
 
   constructor() {
     this.map = L.map('map');
+    this.mineMap = new MineMap(this, 'pane-minecraft-map');
     this.stat = {
       blocksize: 1,
       zoom: 15,
       marker: { disp: false, grid_size: 2048 },
+      minecraft_offset: { x: 0, y: 64, z: 0 }
     };
     L.tileLayer(this.url_template, this.tile_attr).addTo(this.map);
     L.control.scale().addTo(this.map);
@@ -64,7 +68,6 @@ export class Chizucraft {
     this.dispCurrentMapState();
     if (this.stat.marker.disp)
       this.drawMarker();
-    this.mineMap = new MineMap('pane-minecraft-map');
     this.saveStat();
   }
 
@@ -144,25 +147,43 @@ export class Chizucraft {
 
   saveStat() {
     localStorage.setItem('chizucraft_stat', JSON.stringify(this.stat));
-
-    let s = this.stat;
-    if (s.origin) {
-      let oLatLng = L.latLng(s.origin);
-      let param: ProjectionParameter = {
-        zoom: s.zoom,
-        oPoint: this.map.project(oLatLng, s.zoom),
-        origin: [0, 0],
-        blocksize: s.blocksize,
-        mPerPoint: this.getMPerPoint()
-      };
-      this.mineMap.setParam(param);
-    }
   }
 
   loadStat() {
     let stat_json = localStorage.getItem('chizucraft_stat');
-    if (stat_json)
-      this.stat = JSON.parse(stat_json) as cc_stat;
+    if (stat_json) {
+      let stat = JSON.parse(stat_json);
+      stat.minecraft_offset ||= { x: 0, y: 64, z: 0 };
+      this.stat = stat as cc_stat;
+      if (stat.origin) {
+        let oLatLng = L.latLng(stat.origin);
+        let param: ProjectionParameter = {
+          zoom: stat.zoom,
+          oPoint: this.map.project(oLatLng, stat.zoom),
+          blocksize: stat.blocksize,
+          mPerPoint: this.getMPerPoint()
+        };
+        this.mineMap.setParam(param);
+      }
+      if (this.stat.tab)
+        this.tab_set(this.stat.tab);
+    }
+  }
+
+  tab_set(target: string) {
+    console.log('tab_set:', target);
+    $('.tab-bar a.nav-link').removeClass('active');
+    $('.tab-bar div.tab').removeClass('hidden');
+    $('.tab-bar div.tab').addClass('hidden');
+    $(`.tab-bar a.nav-link[target=${target}]`).addClass('active');
+    $('#' + target).removeClass('hidden');
+    if (target == 'pane-minecraft-map') {
+      this.mineMap.update_canvas_size();
+    }
+    if (this.stat.tab != target) {
+      this.stat.tab = target;
+      this.saveStat();
+    }
   }
 
   bind() {
@@ -333,7 +354,6 @@ export class Chizucraft {
       let param: ProjectionParameter = {
         zoom: s.zoom,
         oPoint: this.map.project(oLatLng, s.zoom),
-        origin: [0, 0],
         blocksize: s.blocksize,
         mPerPoint: this.getMPerPoint()
       };

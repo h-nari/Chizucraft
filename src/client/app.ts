@@ -9,16 +9,20 @@ declare global {
 
 $(() => {
   $('.tab-bar a.nav-link').on('click', e => {
-    $('.tab-bar a.nav-link').removeClass('active');
-    $('.tab-bar div.tab').removeClass('hidden');
-    $('.tab-bar div.tab').addClass('hidden');
-    $(e.currentTarget).addClass('active');
     let target = $(e.currentTarget).prop('target');
-    if (target) {
-      $('#' + target).removeClass('hidden');
-    }
-    if(target == 'pane-minecraft-map'){
-      window.cc.mineMap.update_canvas_size();
+    if (true) {
+      window.cc.tab_set(target);
+    } else {
+      $('.tab-bar a.nav-link').removeClass('active');
+      $('.tab-bar div.tab').removeClass('hidden');
+      $('.tab-bar div.tab').addClass('hidden');
+      $(e.currentTarget).addClass('active');
+      if (target) {
+        $('#' + target).removeClass('hidden');
+      }
+      if (target == 'pane-minecraft-map') {
+        window.cc.mineMap.update_canvas_size();
+      }
     }
     e.preventDefault();
   });

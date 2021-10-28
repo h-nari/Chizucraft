@@ -3,7 +3,6 @@ import * as L from 'leaflet';
 export interface ProjectionParameter {
   zoom: number;
   oPoint: L.Point;            // 原点のtile上での座標
-  origin: [number, number];   // 原点のマインクラフト上の座標
   blocksize: number;          // マインクラフトの1ブロックを何mにするか [m/block]
   mPerPoint: { x: number, y: number }; // 1Pointあたりの距離
 };

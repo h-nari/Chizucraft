@@ -7,3 +7,14 @@ div.mine-map {
   width: 100%;
   height: calc(100% - 60px);
 }
+
+.minecraft-offset-dlg .labeled-input {
+  display: inline-block;
+  label {
+    margin-left: 10px;
+    margin-right: 2px;
+  }
+  input {
+    width: 80px;
+  }
+}

@@ -1,7 +1,17 @@
-import { div, tag } from "./tag";
+import { div, input, label, tag } from "./tag";
 import { CoordinateTransformation } from "./ct";
 import { ProjectionParameter, TileMaker } from "./tileMaker";
 import { Menu } from "./menu";
+import { Chizucraft } from "./chizucraft";
+import "./jconfirm";
+
+const grids = [
+  [1, 'lightgray'],
+  [4, '#ffc0c0'],
+  [16, 'green'],
+  [128, 'blue'],
+  [128 * 16, 'black']
+] as [number, string][]
 
 interface TileInfo {
   image?: ImageData;
@@ -25,16 +35,59 @@ export class MineMap {
   private moved: boolean = false;
   private redrawing: boolean = false;
   private mx0 = 50;
-  private mx1 = 50;
+  private mx1 = 0;
   private my0 = 20;
-  private my1 = 20;
+  private my1 = 0;
   private disp_menu: Menu;
   private selected?: Area;
+  public cc: Chizucraft;
 
-  constructor(targetId: string) {
-    this.disp_menu = new Menu({ name: '表示' });
+  constructor(cc: Chizucraft, targetId: string) {
+    this.cc = cc;
+    this.disp_menu = new Menu({ name: 'メニュー' });
     this.disp_menu.add({
-      name: 'foo'
+      name: 'マインクラフトの座標を指定',
+      action: (e, menu) => {
+        let sel = this.selected;
+        if (sel) {
+          let moff = this.cc.stat.minecraft_offset;
+          $.confirm({
+            title: 'マインクラフトの座標を指定',
+            columnClass: 'medium',
+            content: div({ class: 'minecraft-offset-dlg' },
+              div('選択されたブロックのマインクラフトでの座標'),
+              div({ class: 'mt-3 d-flex justify-content-center' },
+                div({ class: 'labeled-input ml-auto' },
+                  label('x:'), input({ class: 'x', type: 'number', value: moff.x + sel.x })),
+                div({ class: 'labeled-input' },
+                  label('y:'), input({ class: 'y', type: 'number', value: moff.y })),
+                div({ class: 'labeled-input' },
+                  label('z:'), input({ class: 'z', type: 'number', value: moff.z + sel.y }))),
+            ),
+            buttons: {
+              ok: {
+                text: '設定',
+                action: () => {
+                  let x = parseInt($('.minecraft-offset-dlg input.x').val() as string);
+                  let y = parseInt($('.minecraft-offset-dlg input.y').val() as string);
+                  let z = parseInt($('.minecraft-offset-dlg input.z').val() as string);
+                  if (moff && sel) {
+                    moff.x = x - sel.x;
+                    moff.y = y;
+                    moff.z = z - sel.y;
+                    this.cc.saveStat();
+                    this.draw();
+                  }
+                }
+              },
+              cancel: {}
+            }
+          });
+
+        } else {
+          $.alert('マインクラフトのブロックが選択されていません')
+        }
+      }
     }).add({
       name: 'bar'
     });
@@ -151,8 +204,28 @@ export class MineMap {
       }
       await Promise.all(jobs);
     }
+    this.drawGrid(ctx);
+    this.drawSelection(ctx);
     ctx.restore();
-    this.drawXFrame();
+    this.drawXFrame(ctx);
+    this.drawYFrame(ctx);
+  }
+
+  drawSelection(ctx: CanvasRenderingContext2D) {
+    let s = this.selected;
+    if (s) {
+      let c = this.ct;
+      let w = s.w || 1;
+      let h = s.w || 1;
+      ctx.beginPath();
+      ctx.rect(c.toX(s.x), c.toY(s.y), c.ax * w, c.ay * h);
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+
+      let moff = this.cc.stat.minecraft_offset;
+      $('.topbar .status').text(`Minecraft(x: ${s.x + moff.x}, y: ${moff.y}, z: ${s.y + moff.z})`);
+    }
   }
 
   redraw() {
@@ -163,6 +236,92 @@ export class MineMap {
         this.redrawing = false;
       }, 0);
     }
+  }
+
+  drawGrid(ctx: CanvasRenderingContext2D) {
+    let moff = this.cc.stat.minecraft_offset;
+    let x0 = this.mx0;
+    let x1 = this.canvas.width - this.mx1;
+    let y0 = this.my0;
+    let y1 = this.canvas.height - this.my1;
+    for (let g of grids) {
+      if (this.ct.ax * g[0] < 32) continue;
+      ctx.strokeStyle = g[1];
+      ctx.beginPath();
+      for (let mx = Math.floor((this.ct.fromX(x0) + moff.x) / g[0]) * g[0]; this.ct.toX(mx - moff.x) < x1; mx += g[0]) {
+        let x = this.ct.toX(mx - moff.x);
+        ctx.moveTo(x, y0);
+        ctx.lineTo(x, y1);
+      }
+      for (let mz = Math.floor((this.ct.fromY(y0) + moff.z) / g[0]) * g[0]; this.ct.toY(mz - moff.z) < y1; mz += g[0]) {
+        let y = this.ct.toY(mz - moff.z);
+        ctx.moveTo(x0, y);
+        ctx.lineTo(x1, y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  drawXFrame(ctx: CanvasRenderingContext2D) {
+    let c = this.canvas;
+    let moff = this.cc.stat.minecraft_offset;
+    let ct = this.ct;
+    let x0 = this.mx0;
+    let x1 = c.width - this.mx1;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x0, 0, x1 - x0, this.my0);
+    ctx.clip();
+    ctx.fillStyle = '#f8f8f8';
+    ctx.fill();
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+    ctx.fillStyle = 'black';
+    ctx.textBaseline = 'alphabetic';
+    for (let g of grids) {
+      ctx.strokeStyle = g[1];
+      if (this.ct.ax * g[0] < 50) continue;
+      for (let mx = Math.floor((ct.fromX(x0) + moff.x) / g[0]) * g[0]; ct.toX(mx - moff.x) < x1; mx += g[0]) {
+        let x = ct.toX(mx - moff.x);
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, this.my0);
+        ctx.stroke();
+        ctx.fillText(`x:${mx}`, x + 2, this.my0 - 2);
+      }
+    }
+    ctx.restore();
+  }
+
+  drawYFrame(ctx: CanvasRenderingContext2D) {
+    let c = this.canvas;
+    let moff = this.cc.stat.minecraft_offset;
+    let ct = this.ct;
+    let y0 = this.my0;
+    let y1 = c.height - this.my1;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y0, this.mx0, y1 - y0);
+    ctx.clip();
+    ctx.fillStyle = '#f8f8f8';
+    ctx.fill();
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+    ctx.fillStyle = 'black';
+    ctx.textBaseline = 'alphabetic';
+    for (let g of grids) {
+      ctx.strokeStyle = g[1];
+      if (this.ct.ax * g[0] < 50) continue;
+      for (let mz = Math.floor((ct.fromY(y0) + moff.z) / g[0]) * g[0]; ct.toY(mz - moff.z) < y1; mz += g[0]) {
+        let y = ct.toY(mz - moff.z);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(this.mx0, y);
+        ctx.stroke();
+        ctx.fillText(`z:${mz}`, 2, y - 2);
+      }
+    }
+    ctx.restore();
   }
 
   async drawTile(ctx: CanvasRenderingContext2D, tx: number, ty: number) {
@@ -198,12 +357,14 @@ export class MineMap {
       ctx.textAlign = 'center';
       ctx.fillText(`(${tx},${ty})`, x + w / 2, y + h / 2);
     }
-    ctx.save();
-    ctx.strokeStyle = 'blue';
-    ctx.lineWidth = 1.0;
-    ctx.globalAlpha = 0.5;
-    ctx.strokeRect(x, y, w, h);
-    ctx.restore();
+    if (false) {
+      ctx.save();
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 1.0;
+      ctx.globalAlpha = 0.5;
+      ctx.strokeRect(x, y, w, h);
+      ctx.restore();
+    }
   }
 
   drawPixelTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, ti: TileInfo) {
@@ -239,8 +400,8 @@ export class MineMap {
     ctx.rect(x, y, this.ct.ax, this.ct.ay);
     ctx.fillStyle = `rgb(${r},${g},${b})`;
     ctx.fill();
-    ctx.strokeStyle = 'lightgray';
-    ctx.stroke();
+    // ctx.strokeStyle = 'lightgray';
+    // ctx.stroke();
   }
 
 
@@ -251,46 +412,6 @@ export class MineMap {
     this.draw();
   }
 
-  drawXFrame() {
-    let c = this.canvas;
-    let ctx = c.getContext('2d');
-    if (ctx) {
-      ctx.rect(this.mx0, 0, c.width - (this.mx0 + this.mx1), this.my0);
-      ctx.fillStyle = 'white';
-      ctx.fill();
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      let x1 = c.width - this.mx1;
-      let tx0 = this.ct.s2tileX(this.mx0);
-      let tx1 = this.ct.s2tileX(x1);
-
-      if (16 * this.ct.ax > 20) {
-        ctx.strokeStyle = 'green';
-        for (let xx = tx0 * 128; xx < (tx1 + 1) * 128; xx += 16) {
-          let x = this.ct.toX(xx);
-          if (x > this.mx0 && x < x1) {
-            ctx.beginPath();
-            ctx.moveTo(x, this.my0 / 2);
-            ctx.lineTo(x, this.my0);
-            ctx.stroke();
-          }
-        }
-      }
-
-      ctx.strokeStyle = 'blue';
-      for (let tx = tx0; tx <= tx1; tx++) {
-        let x = this.ct.toX(tx * 128);
-        if (x > this.mx0 && x < x1) {
-          ctx.beginPath();
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, this.my0);
-          ctx.stroke();
-        }
-      }
-    }
-  }
 
   select(e: JQuery.ClickEvent) {
     let sx = e.clientX - e.currentTarget.offsetLeft;
@@ -298,7 +419,6 @@ export class MineMap {
     let x = this.ct.fromX(sx);
     let y = this.ct.fromY(sy);
     this.selected = { x, y };
-    $('.topbar .status').text(`(${x},${y})`);
   }
 
 }

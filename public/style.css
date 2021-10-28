@@ -11,6 +11,17 @@ div.mine-map {
   height: calc(100% - 60px);
 }
 
+.minecraft-offset-dlg .labeled-input {
+  display: inline-block;
+}
+.minecraft-offset-dlg .labeled-input label {
+  margin-left: 10px;
+  margin-right: 2px;
+}
+.minecraft-offset-dlg .labeled-input input {
+  width: 80px;
+}
+
 .tab-pane {
   height: 95vh;
   overflow: auto;
