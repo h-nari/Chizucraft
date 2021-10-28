@@ -4,6 +4,7 @@ import { ProjectionParameter, TileMaker } from "./tileMaker";
 import { Menu } from "./menu";
 import { Chizucraft } from "./chizucraft";
 import "./jconfirm";
+import { HeightBuf } from "./heightBuf";
 
 const grids = [
   [1, 'lightgray'],
@@ -41,6 +42,7 @@ export class MineMap {
   private disp_menu: Menu;
   private selected?: Area;
   public cc: Chizucraft;
+  private heightBuf: HeightBuf | undefined;
 
   constructor(cc: Chizucraft, targetId: string) {
     this.cc = cc;
@@ -160,6 +162,7 @@ export class MineMap {
 
   setParam(param: ProjectionParameter) {
     this.param = param;
+    this.heightBuf = new HeightBuf(param);
   }
 
   update_canvas_size() {
@@ -342,7 +345,7 @@ export class MineMap {
     let h = this.ct.ay * 128;
     if (buf && buf.image) {
       if (this.ct.ax > 15)
-        this.drawPixelTile(ctx, tx, ty, buf);
+        await this.drawPixelTile(ctx, tx, ty, buf);
       else {
         let im = await createImageBitmap(buf.image);
         ctx.save();
@@ -367,7 +370,7 @@ export class MineMap {
     }
   }
 
-  drawPixelTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, ti: TileInfo) {
+  async drawPixelTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, ti: TileInfo) {
     let img = ti.image;
     if (!img) return;
     let y = this.ct.toY(ty * 128);
@@ -387,7 +390,9 @@ export class MineMap {
             let r = img.data[off];
             let g = img.data[off + 1];
             let b = img.data[off + 2];
-            this.drawPixel(ctx, x, y, r, g, b);
+
+            let h = this.heightBuf ? await this.heightBuf.getHeight(tx * 128 + ix, ty * 128 + iy) : 0;
+            this.drawPixel(ctx, x, y, r, g, b, h);
           }
         }
       }
@@ -395,13 +400,19 @@ export class MineMap {
   }
 
 
-  drawPixel(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, g: number, b: number) {
+  drawPixel(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, g: number, b: number, h: number) {
     ctx.beginPath();
     ctx.rect(x, y, this.ct.ax, this.ct.ay);
     ctx.fillStyle = `rgb(${r},${g},${b})`;
     ctx.fill();
-    // ctx.strokeStyle = 'lightgray';
-    // ctx.stroke();
+
+    if (this.ct.ax > 25) {
+      ctx.fillStyle = 'black';
+      if (Number.isNaN(h))
+        ctx.fillText('e', x + 2, y - 2);
+      else
+        ctx.fillText(String(Math.floor(h)), x + 2, y - 2);
+    }
   }
 
 
@@ -413,12 +424,16 @@ export class MineMap {
   }
 
 
-  select(e: JQuery.ClickEvent) {
+  async select(e: JQuery.ClickEvent) {
     let sx = e.clientX - e.currentTarget.offsetLeft;
     let sy = e.clientY - e.currentTarget.offsetTop;
     let x = this.ct.fromX(sx);
     let y = this.ct.fromY(sy);
     this.selected = { x, y };
+    if (this.heightBuf) {
+      let h = await this.heightBuf.getHeight(x, y);
+      console.log('height:', h);
+    }
   }
 
 }
