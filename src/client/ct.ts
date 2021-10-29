@@ -25,4 +25,10 @@ export class CoordinateTransformation {
     this.bx += dx;
     this.by += dy;
   }
+
+  moveTo(x: number, y: number, scale: number, sx: number, sy: number) {
+    this.bx = sx - x * scale;
+    this.by = sy - y * scale;
+    this.ax = this.ay = scale;
+  }
 }

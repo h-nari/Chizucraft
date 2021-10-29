@@ -91,7 +91,34 @@ export class MineMap {
         }
       }
     }).add({
-      name: 'bar'
+      name: '指定した場所へ移動',
+      action: (e, menu) => {
+        let moff = this.cc.stat.minecraft_offset;
+        let cx = this.canvas.width / 2;
+        let cy = this.canvas.height / 2;
+        let mx = this.ct.fromX(cx) + moff.x;
+        let mz = this.ct.fromY(cy) + moff.z;
+        $.confirm({
+          title: '指定した場所へ移動',
+          columnClass: 'medium',
+          content: div({ class: 'goto-minecraft-point-dlg' },
+            div({ class: 'labeled-input' },
+              label('x:'), input({ class: 'x', type: 'number', value: mx })),
+            div({ class: 'labeled-input' },
+              label('z:'), input({ class: 'z', type: 'number', value: mz }))
+          ),
+          buttons: {
+            GOTO: () => {
+              let x = parseInt($('.goto-minecraft-point-dlg input.x').val() as string) - moff.x;
+              let y = parseInt($('.goto-minecraft-point-dlg input.z').val() as string) - moff.z;
+              this.ct.moveTo(x, y, 32, cx, cy);
+              this.selected = { x, y };
+              this.draw();
+            },
+            Cancel: () => { }
+          }
+        });
+      }
     });
 
 
