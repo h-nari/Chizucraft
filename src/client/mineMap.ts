@@ -214,7 +214,7 @@ export class MineMap {
     this.drawYFrame(ctx);
   }
 
-  drawSelection(ctx: CanvasRenderingContext2D) {
+  async drawSelection(ctx: CanvasRenderingContext2D) {
     let s = this.selected;
     if (s) {
       let c = this.ct;
@@ -226,8 +226,13 @@ export class MineMap {
       ctx.lineWidth = 2.0;
       ctx.stroke();
 
+
+      let height = 0;
+      if (this.heightBuf)
+        height = await this.heightBuf.getHeight(s.x, s.y);
+
       let moff = this.cc.stat.minecraft_offset;
-      $('.topbar .status').text(`Minecraft(x: ${s.x + moff.x}, y: ${moff.y}, z: ${s.y + moff.z})`);
+      $('.topbar .status').text(`Minecraft(x: ${s.x + moff.x}, y: ${height + moff.y}, z: ${s.y + moff.z})`);
     }
   }
 
