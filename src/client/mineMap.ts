@@ -5,6 +5,7 @@ import { Menu } from "./menu";
 import { Chizucraft } from "./chizucraft";
 import "./jconfirm";
 import { HeightBuf } from "./heightBuf";
+import L from "leaflet";
 
 const grids = [
   [1, 'lightgray'],
@@ -118,6 +119,23 @@ export class MineMap {
             Cancel: () => { }
           }
         });
+      }
+    }).add({
+      name: 'GoogleMapを開く',
+      action: (e, menu) => {
+        let x = this.ct.fromX(this.canvas.width / 2);
+        let y = this.ct.fromY(this.canvas.height / 2);
+        let param = this.param;
+        if (param) {
+          let mpp = param.mPerPoint;
+          let o = param.oPoint;
+          let p = L.point({ x: x / mpp.x + o.x, y: y / mpp.y + o.y });
+          let latlng = this.cc.map.unproject(p, param.zoom);
+          let url = 'https://www.google.com/maps/@?api=1&map_action=map&';
+          url += `center=${latlng.lat},${latlng.lng}&zoom=${param.zoom}`;
+          console.log('url:', url);
+          window.open(url, '_blank');
+        }
       }
     });
 
@@ -283,12 +301,12 @@ export class MineMap {
       if (this.ct.ax * g[0] < 32) continue;
       ctx.strokeStyle = g[1];
       ctx.beginPath();
-      for (let mx = Math.floor((this.ct.fromX(x0) + moff.x) / g[0]) * g[0]; this.ct.toX(mx - moff.x) < x1; mx += g[0]) {
+      for (let mx = Math.floor((this.ct.fromX(x0) + moff.x + 64) / g[0]) * g[0] - 64; this.ct.toX(mx - moff.x) < x1; mx += g[0]) {
         let x = this.ct.toX(mx - moff.x);
         ctx.moveTo(x, y0);
         ctx.lineTo(x, y1);
       }
-      for (let mz = Math.floor((this.ct.fromY(y0) + moff.z) / g[0]) * g[0]; this.ct.toY(mz - moff.z) < y1; mz += g[0]) {
+      for (let mz = Math.floor((this.ct.fromY(y0) + moff.z + 64) / g[0]) * g[0] - 64; this.ct.toY(mz - moff.z) < y1; mz += g[0]) {
         let y = this.ct.toY(mz - moff.z);
         ctx.moveTo(x0, y);
         ctx.lineTo(x1, y);
@@ -316,7 +334,7 @@ export class MineMap {
     for (let g of grids) {
       ctx.strokeStyle = g[1];
       if (this.ct.ax * g[0] < 50) continue;
-      for (let mx = Math.floor((ct.fromX(x0) + moff.x) / g[0]) * g[0]; ct.toX(mx - moff.x) < x1; mx += g[0]) {
+      for (let mx = Math.floor((ct.fromX(x0) + moff.x + 64) / g[0]) * g[0] - 64; ct.toX(mx - moff.x) < x1; mx += g[0]) {
         let x = ct.toX(mx - moff.x);
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -347,7 +365,7 @@ export class MineMap {
     for (let g of grids) {
       ctx.strokeStyle = g[1];
       if (this.ct.ax * g[0] < 50) continue;
-      for (let mz = Math.floor((ct.fromY(y0) + moff.z) / g[0]) * g[0]; ct.toY(mz - moff.z) < y1; mz += g[0]) {
+      for (let mz = Math.floor((ct.fromY(y0) + moff.z + 64) / g[0]) * g[0] - 64; ct.toY(mz - moff.z) < y1; mz += g[0]) {
         let y = ct.toY(mz - moff.z);
         ctx.beginPath();
         ctx.moveTo(0, y);
