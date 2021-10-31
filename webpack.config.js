@@ -9,7 +9,7 @@ var app = {
     entry: path.join(__dirname, 'src', 'client', 'app.ts'),
     output: {
         filename: 'app.js',
-        path: path.resolve(__dirname, 'public')
+        path: path.resolve(__dirname, 'dist')
     },
     node: {
         __dirname: false,
@@ -39,7 +39,7 @@ var css = {
     },
     devtool: "source-map",
     output: {
-        path: path.resolve(__dirname, 'public'),
+        path: path.resolve(__dirname, 'dist'),
         filename: 'app.css'
     },
     module: {
