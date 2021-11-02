@@ -141,7 +141,7 @@ export class Chizucraft {
       row('ピクセル化',
         div('使用するzool level'),
         select({ class: 'mmap-zoom' }, ...range(this.map.getMaxZoom(), 4).map(z => option({ value: z, selected: selected(this.stat.zoom == z) }, z))),
-        button({ class: 'btn btn-sm btn-primary btn-pixel-test' }, 'Test')),
+        button({ class: 'btn btn-sm btn-primary btn-vector-test' }, 'Vector Test')),
       row('ファイル',
         div(
           div('ファイル名'),
@@ -260,8 +260,8 @@ export class Chizucraft {
       console.log('set origin');
     });
     // test
-    $('.btn-pixel-test').on('click', e => {
-      this.pixel_test();
+    $('.btn-vector-test').on('click', e => {
+      this.vector_test();
     });
     // load
     $('.btn-file-load').on('click', e => {
@@ -373,7 +373,7 @@ export class Chizucraft {
     setTimeout(() => { URL.revokeObjectURL(url); }, 1E3);
   }
 
-  async pixel_test() {
+  async vector_test() {
     let s = this.stat;
     if (s.origin) {
       let oLatLng = L.latLng(s.origin);
@@ -383,9 +383,24 @@ export class Chizucraft {
         blocksize: s.blocksize,
         mPerPoint: this.getMPerPoint()
       };
-      let mmap = new TileMaker(param);
-      console.log('pixel_test');
-      mmap.getTile(0, 0);
+      let zoom = 16;
+      let p = this.map.project(oLatLng, zoom);
+      let vals = { x: Math.floor(p.x / 256), y: Math.floor(p.y / 256), z: zoom, t: 'experimental_bvmap' };
+      const template = 'https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.pbf';
+      let url = template.replace(/\{(x|y|z|t)\}/g, (substring: string, ...arg: string[]) =>
+        String(vals[arg[0] as 'x' | 'y' | 'z' | 't'] || `_${arg[0]}_undefined_`));
+      console.log('vector_test:' + url);
+      $.ajax({
+        method: 'get', url,
+        dataType: 'text',
+        success: (data, dataType) => {
+          console.log('dataType:', dataType);
+          console.log('data:', data);
+        },
+        error: (xhr, ts, et) => {
+          console.log(et);
+        }
+      });
     }
   }
 
