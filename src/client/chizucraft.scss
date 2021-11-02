@@ -64,3 +64,32 @@ div.label {
     font-style: italic;
   }
 }
+
+.topbar {
+  display: flex;
+  margin: 5px;
+  padding: 5px;
+  background-color: lightgray;
+
+  .origin .value {
+    width: 300px;
+  }
+}
+
+.label-value {
+  margin: 5px 10px;
+  display: inline-block;
+  label {
+    vertical-align: middle;
+    font-weight: bold;
+  }
+  .value {
+    vertical-align: middle;
+    display: inline-block;
+    height: 1.8em;
+    width: 50px;
+    background-color: white;
+    border-bottom: 1px solid black;
+    padding: 2px;
+  }
+}

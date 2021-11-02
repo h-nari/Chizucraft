@@ -82,7 +82,7 @@ export class Menu {
       let x = offset?.left || 0;
       let y = (offset?.top || 0) + h + 5;
       let style = `top: ${y}px; left: ${x}px;`;
-      $('body').prepend(div({ class: 'menu-back', style: 'z-index:10' },
+      $('body').append(div({ class: 'menu-back', style: 'z-index:1000' },
         div({ id: sub_id, style, class: 'menu-stack' }, s)));
       this.subMenu.forEach(m => { m.bind(); });
       $('.menu-back').on('click', () => {

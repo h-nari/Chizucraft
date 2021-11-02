@@ -150,8 +150,7 @@ export class MineMap {
   html() {
     return div({ class: 'mine-map' },
       div({ class: 'topbar d-flex' },
-        'Topbar',
-        div({ class: 'flex-fill mx-2 status' }, 'status'),
+        div({ class: 'flex-fill mx-2 status' }),
         this.disp_menu.html()),
       tag('canvas', { id: 'mine-map-canvas' }));
   }

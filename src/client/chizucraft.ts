@@ -1,8 +1,9 @@
 import * as L from 'leaflet';
 import { TileMaker, ProjectionParameter } from './tileMaker';
 import { a, button, div, input, label, option, select, selected } from './tag';
-import { checkbox, range, row } from './template';
+import { range, row } from './template';
 import { MineMap } from './mineMap';
+import { Menu } from './menu';
 
 let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>";
 
@@ -30,6 +31,7 @@ export class Chizucraft {
   public cLatLng: L.LatLng; // 画面中心の座標
   public lockMarker = false;
   public mineMap: MineMap;
+  public helpMenu: Menu;
 
   constructor() {
     this.map = L.map('map');
@@ -63,12 +65,35 @@ export class Chizucraft {
       this.dispCurrentMapState();
       this.saveView();
     })
+    this.helpMenu = new Menu({ name: 'ヘルプ' });
+    this.helpMenu.add({
+      name: '使い方'
+    }).add({
+      name: 'このプログラムについて'
+    });
+
+
     this.cLatLng = this.map.getBounds().getCenter();
+    $('#map-pane .topbar').html(this.html_topbar());
     $('#controller').html(this.html());
     this.dispCurrentMapState();
     if (this.stat.marker.disp)
       this.drawMarker();
     this.saveStat();
+  }
+
+  html_topbar() {
+    let s = div({ class: 'origin label-value' },
+      label('基準点:'),
+      div({ class: 'value' }, '未設定')
+    );
+    s += div({ class: 'zoom label-value' },
+      label('Zoom'),
+      div({ class: 'value' })
+    )
+    s += div({ class: 'd-inlineblock flex-fill' });
+    s += this.helpMenu.html();
+    return s;
   }
 
   html() {
@@ -187,6 +212,7 @@ export class Chizucraft {
   }
 
   bind() {
+    this.helpMenu.bind();
     $('#controller .block-size').on('change', e => {
       let bs = parseInt($(e.currentTarget).val() as string);
       this.stat.blocksize = bs == 0 ? 1 : bs;
