@@ -4,6 +4,7 @@ import { a, button, div, input, label, option, select, selected } from './tag';
 import { range, row } from './template';
 import { MineMap } from './mineMap';
 import { Menu } from './menu';
+import { VectorTile } from './vectorTile';
 
 let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>";
 
@@ -373,36 +374,6 @@ export class Chizucraft {
     setTimeout(() => { URL.revokeObjectURL(url); }, 1E3);
   }
 
-  async vector_test() {
-    let s = this.stat;
-    if (s.origin) {
-      let oLatLng = L.latLng(s.origin);
-      let param: ProjectionParameter = {
-        zoom: s.zoom,
-        oPoint: this.map.project(oLatLng, s.zoom),
-        blocksize: s.blocksize,
-        mPerPoint: this.getMPerPoint()
-      };
-      let zoom = 16;
-      let p = this.map.project(oLatLng, zoom);
-      let vals = { x: Math.floor(p.x / 256), y: Math.floor(p.y / 256), z: zoom, t: 'experimental_bvmap' };
-      const template = 'https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.pbf';
-      let url = template.replace(/\{(x|y|z|t)\}/g, (substring: string, ...arg: string[]) =>
-        String(vals[arg[0] as 'x' | 'y' | 'z' | 't'] || `_${arg[0]}_undefined_`));
-      console.log('vector_test:' + url);
-      $.ajax({
-        method: 'get', url,
-        dataType: 'text',
-        success: (data, dataType) => {
-          console.log('dataType:', dataType);
-          console.log('data:', data);
-        },
-        error: (xhr, ts, et) => {
-          console.log(et);
-        }
-      });
-    }
-  }
 
   // 現在の原点のポイントあたりの距離[m]をx,y方向毎に返す
   getMPerPoint() {
@@ -423,6 +394,92 @@ export class Chizucraft {
       return { x, y };
     } else {
       return { x: 1, y: 1 };
+    }
+  }
+
+  async vector_test() {
+    this.tab_set('pane-work-canvas')
+    let s = this.stat;
+    if (s.origin) {
+      let oLatLng = L.latLng(s.origin);
+      let param: ProjectionParameter = {
+        zoom: s.zoom,
+        oPoint: this.map.project(oLatLng, s.zoom),
+        blocksize: s.blocksize,
+        mPerPoint: this.getMPerPoint()
+      };
+      let zoom = 17;
+      let p = this.map.project(oLatLng, zoom);
+      let vals = { x: Math.floor(p.x / 256), y: Math.floor(p.y / 256), z: zoom, t: 'experimental_bvmap' };
+      const template = 'https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.pbf';
+      let url = template.replace(/\{(x|y|z|t)\}/g, (substring: string, ...arg: string[]) =>
+        String(vals[arg[0] as 'x' | 'y' | 'z' | 't'] || `_${arg[0]}_undefined_`));
+      console.log('vector_test:' + url);
+      let xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = function (e) {
+        var arrayBuffer = this.response;
+        if (arrayBuffer) {
+          var data = new Uint8Array(arrayBuffer);
+          var vm = new VectorTile(data);
+          let canvas = document.getElementById('work-canvas3') as HTMLCanvasElement;
+          var ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.lineWidth = 4;
+            let scale = 0.20;
+            ctx.scale(scale, scale);
+
+            let colors = ['black', 'red', 'blue', 'green', 'orange', 'darkgray', 'orange', 'yellow', 'violet', 'cyan'];
+            let ci = 0;
+
+            for (let name in vm.layers) {
+              // if(name == 'building') continue;
+              let layer = vm.layers[name];
+
+              if (++ci >= colors.length) ci = 0;
+              console.log(name, ' color:', colors[ci], 'size:', layer.features.length);
+              ctx.strokeStyle = colors[ci];
+              ctx.fillStyle = colors[ci];
+
+              let summary: { [attr: string]: number } = {};
+
+              let cnt = 0;
+              for (let f of layer.features) {
+                for (let attr in f.getAttrs())
+                  summary[attr] = attr in summary ? summary[attr] + 1 : 1;
+                if (name == 'road' && f.attr('rnkWidth')) continue;
+                f.geo_parse((cmd, x, y) => {
+                  if (ctx) {
+                    if (cmd == 'begin') ctx.beginPath();
+                    else if (cmd == 'moveto') ctx.moveTo(x, y);
+                    else if (cmd == 'lineto') ctx.lineTo(x, y);
+                    else if (cmd == 'closepath') ctx.closePath();
+                    else if (cmd == 'end') {
+                      if (f.feature.getType() == 3) {
+                        ctx.save();
+                        ctx.globalAlpha = 0.2;
+                        ctx.fill()
+                        ctx.restore();
+                      }
+                      ctx.stroke();
+                    }
+                  }
+                });
+                cnt++;
+              }
+              console.log(`----${name}:${layer.features.length}---`);
+              for (let attr in summary)
+                console.log(`${attr}:${summary[attr]}`);
+            }
+            ctx.restore();
+          }
+        }
+      }
+      xhr.send();
     }
   }
 };
