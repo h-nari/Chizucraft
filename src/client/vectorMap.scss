@@ -1,0 +1,11 @@
+div.vector-map {
+  width: 100%;
+  height: 99%;
+  overflow: hidden;
+}
+
+#vector-map-canvas {
+  width: 100%;
+  height: calc(100% - 58px);
+  border: 1px solid green;
+}

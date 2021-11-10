@@ -5,6 +5,7 @@ import { range, row } from './template';
 import { MineMap } from './mineMap';
 import { Menu } from './menu';
 import { VectorTile } from './vectorTile';
+import { VectorMap } from './vectorMap';
 
 let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>";
 
@@ -32,11 +33,13 @@ export class Chizucraft {
   public cLatLng: L.LatLng; // 画面中心の座標
   public lockMarker = false;
   public mineMap: MineMap;
+  public vectorMap: VectorMap;
   public helpMenu: Menu;
 
   constructor() {
     this.map = L.map('map');
     this.mineMap = new MineMap(this, 'pane-minecraft-map');
+    this.vectorMap = new VectorMap(this, 'pane-vector-map');
     this.stat = {
       blocksize: 1,
       zoom: 15,
@@ -190,6 +193,7 @@ export class Chizucraft {
           mPerPoint: this.getMPerPoint()
         };
         this.mineMap.setParam(param);
+        this.vectorMap.setParam(Object.assign({}, param));
       }
       if (this.stat.tab)
         this.tab_set(this.stat.tab);
@@ -205,6 +209,8 @@ export class Chizucraft {
     $('#' + target).removeClass('hidden');
     if (target == 'pane-minecraft-map') {
       this.mineMap.update_canvas_size();
+    } else if(target == 'pane-vector-map'){
+      this.vectorMap.update_canvas_size();
     }
     if (this.stat.tab != target) {
       this.stat.tab = target;

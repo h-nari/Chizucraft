@@ -1,3 +1,5 @@
+// ブロック座標 → 画面座標変換
+
 export class CoordinateTransformation {
   public ax: number = 1.0;
   public bx: number = 0.0;
@@ -24,6 +26,7 @@ export class CoordinateTransformation {
   pan(dx: number, dy: number) {
     this.bx += dx;
     this.by += dy;
+    return dx != 0 || dy != 0;
   }
 
   moveTo(x: number, y: number, scale: number, sx: number, sy: number) {

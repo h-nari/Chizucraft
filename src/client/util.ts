@@ -67,3 +67,6 @@ export function split_yymm(yymm: string) {
     throw new Error('Bad format yymm:' + yymm);
 }
 
+export function round(x: number, y: number) {
+  return Math.floor(x / y) * y;
+}

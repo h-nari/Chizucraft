@@ -1,4 +1,3 @@
-import { camelCase } from 'jquery';
 import { Chizucraft } from './chizucraft';
 
 declare global {

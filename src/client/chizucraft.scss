@@ -1,4 +1,5 @@
 @use "mineMap.scss";
+@use "vectorMap.scss";
 
 .tab-pane {
   height: 95vh;
@@ -14,6 +15,7 @@
 
   .tab {
     height: 100%;
+    overflow: auto;
   }
 }
 
