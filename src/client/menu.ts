@@ -15,7 +15,7 @@ export interface MenuOption {
   action?: MenuAction;
   link?: string;
   arg?: any;
-  with_check?: true;
+  with_check?: boolean;
   checked?: boolean;
   badge?: string;
   separator?: boolean;

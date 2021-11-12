@@ -34,6 +34,12 @@ div.vector-map {
   border: 1px solid green;
 }
 
+.topbar .status {
+  border: 1px solid black;
+  padding: 4px;
+  background-color: #eee;
+}
+
 .tab-pane {
   height: 95vh;
   overflow: auto;

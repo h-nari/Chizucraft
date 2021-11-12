@@ -16,6 +16,7 @@ export class VectorMap {
   public zoom: number = 16;
   private menus: Menu[] = [];
   private taskQueue = new TaskQueue();
+  private drawType: 'line' | 'block' = 'line';
 
   constructor(cc: Chizucraft, targetId: string) {
     this.cc = cc;
@@ -51,6 +52,7 @@ export class VectorMap {
       pressed = true;
       x0 = e.clientX;
       y0 = e.clientY;
+      e.preventDefault();
     }).on('mousemove', e => {
       if (pressed) {
         let x = e.clientX;
@@ -60,12 +62,14 @@ export class VectorMap {
         x0 = x;
         y0 = y;
       }
+      e.preventDefault();
     }).on('mouseup', e => {
       if (this.ct.pan(e.clientX - x0, e.clientY - y0)) {
         console.log('up:', e.clientX - x0, e.clientY - y0);
         this.draw();
       }
       pressed = false;
+      e.preventDefault();
     }).on('mousewheel', e => {
       let oe = e.originalEvent as WheelEvent;
       if (oe.deltaY > 0) this.zoomView(0.5, e);
@@ -110,8 +114,13 @@ export class VectorMap {
       return;
     }
     this.zoom_update();
+    this.status(`zoom:${this.zoom} pixel size:${this.ct.ax}`);
     this.taskQueue.clear();
     this.drawVectorMap(ctx);
+  }
+
+  status(html: string) {
+    $('.vector-map .topbar .status').html(html);
   }
 
 
@@ -182,7 +191,6 @@ export class VectorMap {
         ctx.beginPath();
         ctx.rect(x, y, w, h);
         ctx.fill();
-        ctx.lineWidth = 2;
 
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'black';
@@ -222,7 +230,21 @@ export class VectorMap {
   }
 
   makeMenu() {
-    let helpMenu = new Menu({ name: 'Help' });
+    let dispMenu = new Menu({ name: '表示' });
+    this.menus.push(dispMenu);
+    dispMenu.add({
+      name: 'ブロック表示',
+      with_check: this.drawType == 'block',
+      checked: true,
+      action: (e, menu) => {
+        menu.opt.checked = !menu.opt.checked;
+        this.drawType = menu.opt.checked ? 'block' : 'line';
+        this.draw();
+      }
+    });
+
+
+    let helpMenu = new Menu({ name: 'ヘルプ' });
     this.menus.push(helpMenu);
     helpMenu.add({ name: 'この地図について' })
   }
