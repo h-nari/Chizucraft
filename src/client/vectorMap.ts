@@ -1,5 +1,6 @@
 import { Chizucraft } from "./chizucraft";
 import { CoordinateTransformation } from "./ct";
+import { VectorTileRenderer } from "./vectorTileRenderer";
 import { Menu } from "./menu";
 import { TileBlockTranformation } from "./t2b";
 import { div, tag } from "./tag";
@@ -114,7 +115,7 @@ export class VectorMap {
       return;
     }
     this.zoom_update();
-    this.status(`zoom:${this.zoom} pixel size:${this.ct.ax}`);
+    this.status(`zoom:${this.zoom},   Block size:${this.ct.ax} pixel`);
     this.taskQueue.clear();
     this.drawVectorMap(ctx);
   }
@@ -159,23 +160,22 @@ export class VectorMap {
         if (x >= this.canvas.width) break;
         var ctrl = new TaskControl();
         this.taskQueue.add(() => {
-          return this.drawVectorTile(ctx, x, y, tx, ty, tb, ctrl);  // 座標(x,y)に　this.zoom, tx, tyのベクタータイルを描画
+          return this.drawVectorTile(ctx, tx, ty, tb, ctrl);  // 座標(x,y)に　this.zoom, tx, tyのベクタータイルを描画
         }, ctrl);
       }
     }
   }
 
-  drawVectorTile(ctx: CanvasRenderingContext2D, x: number, y: number, tx: number, ty: number, tb: TileBlockTranformation, ctrl: TaskControl) {
+  drawVectorTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation, ctrl: TaskControl) {
     return new Promise<void>((resolve, reject) => {
       if (ctrl.stop) { resolve(); return; }
       let vals = { x: Math.floor(tx / 256), y: Math.floor(ty / 256), z: this.zoom, t: 'experimental_bvmap' };
       const template = 'https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.pbf';
       let url = template.replace(/\{(x|y|z|t)\}/g, (substring: string, ...arg: string[]) =>
         String(vals[arg[0] as 'x' | 'y' | 'z' | 't'] || `_${arg[0]}_undefined_`));
-      let toX = (x: number) => { return this.ct.toX(tb.toBx(x * 256 / 4096 + tx)) };
-      let toY = (y: number) => { return this.ct.toY(tb.toBy(y * 256 / 4096 + ty)) };
       let xhr = new XMLHttpRequest();
       let ct = this.ct;
+      let that = this;
       xhr.open('GET', url, true);
       xhr.responseType = 'arraybuffer';
       xhr.onload = function (e) {
@@ -184,44 +184,9 @@ export class VectorMap {
         if (!arrayBuffer) return;
         let data = new Uint8Array(arrayBuffer);
         let vm = new VectorTile(data);
-        ctx.fillStyle = 'white';
-        let w = ct.ax * tb.ax * 256;
-        let h = ct.ay * tb.ay * 256;
-
-        ctx.beginPath();
-        ctx.rect(x, y, w, h);
-        ctx.fill();
-
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'black';
-        ctx.fillStyle = 'lightgray';
-        for (let name in vm.layers) {
-          let layer = vm.layers[name];
-          setTimeout(() => {
-            if (ctrl.stop) {
-              console.log('stop');
-              return;
-            }
-            for (let f of layer.features) {
-              f.geo_parse((cmd, x, y) => {
-                if (cmd == 'begin') ctx.beginPath();
-                else if (cmd == 'moveto') ctx.moveTo(toX(x), toY(y));
-                else if (cmd == 'lineto') ctx.lineTo(toX(x), toY(y));
-                else if (cmd == 'closepath') ctx.closePath();
-                else if (cmd == 'end') {
-                  if (f.feature.getType() == 3) {
-                    ctx.save();
-                    ctx.globalAlpha = 0.2;
-                    ctx.fill();
-                    ctx.restore();
-                  } else
-                    ctx.stroke();
-                }
-              });
-            }
-          }, 0);
-        }
-        resolve();
+        let renderer = new VectorTileRenderer(ctx, ct, tb, tx, ty, vm);
+        renderer.setCanvasSize(that.canvas.width, that.canvas.height);
+        renderer.draw(ctrl).then(() => { resolve(); });
       }
       xhr.ontimeout = () => { reject("timeout"); };
       xhr.onabort = () => { reject("abort"); };
@@ -249,3 +214,5 @@ export class VectorMap {
     helpMenu.add({ name: 'この地図について' })
   }
 }
+
+
