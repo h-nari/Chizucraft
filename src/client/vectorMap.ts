@@ -9,6 +9,14 @@ import { ProjectionParameter } from "./tileMaker";
 import { round } from "./util";
 import { VectorTile } from "./vectorTile";
 
+const grids = [
+  [1, 'lightgray'],
+  [4, '#ffc0c0'],
+  [16, 'green'],
+  [128, 'blue'],
+  [128 * 16, 'black']
+] as [number, string][]
+
 export class VectorMap {
   public canvas: HTMLCanvasElement;
   public ct = new CoordinateTransformation();
@@ -18,6 +26,10 @@ export class VectorMap {
   private menus: Menu[] = [];
   private taskQueue = new TaskQueue();
   private drawType: 'line' | 'block' = 'line';
+  private mx0 = 50;
+  private mx1 = 0;
+  private my0 = 20;
+  private my1 = 0;
 
   constructor(cc: Chizucraft, targetId: string) {
     this.cc = cc;
@@ -151,6 +163,7 @@ export class VectorMap {
     let by0 = this.ct.fromY(0);
     let tx0 = round(tb.toTx(bx0), 256);
     let ty0 = round(tb.toTy(by0), 256);
+
     for (let ty = ty0; ; ty += 256) {
       let by = tb.toBy(ty);
       let y = this.ct.toY(by);
@@ -160,10 +173,22 @@ export class VectorMap {
         if (x >= this.canvas.width) break;
         var ctrl = new TaskControl();
         this.taskQueue.add(() => {
-          return this.drawVectorTile(ctx, tx, ty, tb, ctrl);  // 座標(x,y)に　this.zoom, tx, tyのベクタータイルを描画
+          return this.drawVectorTile(ctx, tx, ty, tb, ctrl);  // this.zoom, tx, tyのベクタータイルを描画
         }, ctrl);
       }
     }
+    this.taskQueue.add(() => { return this.drawGrid(ctx); });
+    this.taskQueue.add(() => { return this.drawXFrame(ctx); });
+    this.taskQueue.add(() => { return this.drawYFrame(ctx); });
+  }
+
+
+  setClip(ctx: CanvasRenderingContext2D) {
+    let w = this.canvas.width - this.mx0 - this.mx1;
+    let h = this.canvas.height - this.my0 - this.my1;
+    ctx.beginPath();
+    ctx.rect(this.mx0, this.my0, w, h);
+    ctx.clip();
   }
 
   drawVectorTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation, ctrl: TaskControl) {
@@ -185,7 +210,7 @@ export class VectorMap {
         let data = new Uint8Array(arrayBuffer);
         let vm = new VectorTile(data);
         let renderer = new VectorTileRenderer(ctx, ct, tb, tx, ty, vm);
-        renderer.setCanvasSize(that.canvas.width, that.canvas.height);
+        renderer.setArea(that.mx0, that.my0, that.canvas.width - that.mx1, that.canvas.height - that.my1);
         renderer.draw(ctrl).then(() => { resolve(); });
       }
       xhr.ontimeout = () => { reject("timeout"); };
@@ -193,6 +218,94 @@ export class VectorMap {
       xhr.send();
     });
   }
+
+  async drawGrid(ctx: CanvasRenderingContext2D) {
+    let moff = this.cc.stat.minecraft_offset;
+    let x0 = this.mx0;
+    let x1 = this.canvas.width - this.mx1;
+    let y0 = this.my0;
+    let y1 = this.canvas.height - this.my1;
+
+    for (let g of grids) {
+      if (this.ct.ax * g[0] < 32) continue;
+      ctx.strokeStyle = g[1];
+      ctx.beginPath();
+      for (let mx = Math.floor((this.ct.fromX(x0) + moff.x + 64) / g[0]) * g[0] - 64; this.ct.toX(mx - moff.x) < x1; mx += g[0]) {
+        let x = this.ct.toX(mx - moff.x);
+        ctx.moveTo(x, y0);
+        ctx.lineTo(x, y1);
+      }
+      for (let mz = Math.floor((this.ct.fromY(y0) + moff.z + 64) / g[0]) * g[0] - 64; this.ct.toY(mz - moff.z) < y1; mz += g[0]) {
+        let y = this.ct.toY(mz - moff.z);
+        ctx.moveTo(x0, y);
+        ctx.lineTo(x1, y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  async drawXFrame(ctx: CanvasRenderingContext2D) {
+    let c = this.canvas;
+    let moff = this.cc.stat.minecraft_offset;
+    let ct = this.ct;
+    let x0 = this.mx0;
+    let x1 = c.width - this.mx1;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x0, 0, x1 - x0, this.my0);
+    ctx.clip();
+    ctx.fillStyle = '#f8f8f8';
+    ctx.fill();
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+    ctx.fillStyle = 'black';
+    ctx.textBaseline = 'alphabetic';
+    for (let g of grids) {
+      ctx.strokeStyle = g[1];
+      if (this.ct.ax * g[0] < 50) continue;
+      for (let mx = Math.floor((ct.fromX(x0) + moff.x + 64) / g[0]) * g[0] - 64; ct.toX(mx - moff.x) < x1; mx += g[0]) {
+        let x = ct.toX(mx - moff.x);
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, this.my0);
+        ctx.stroke();
+        ctx.fillText(`x:${mx}`, x + 2, this.my0 - 2);
+      }
+    }
+    ctx.restore();
+  }
+
+  async drawYFrame(ctx: CanvasRenderingContext2D) {
+    let c = this.canvas;
+    let moff = this.cc.stat.minecraft_offset;
+    let ct = this.ct;
+    let y0 = this.my0;
+    let y1 = c.height - this.my1;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y0, this.mx0, y1 - y0);
+    ctx.clip();
+    ctx.fillStyle = '#f8f8f8';
+    ctx.fill();
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+    ctx.fillStyle = 'black';
+    ctx.textBaseline = 'alphabetic';
+    for (let g of grids) {
+      ctx.strokeStyle = g[1];
+      if (this.ct.ax * g[0] < 50) continue;
+      for (let mz = Math.floor((ct.fromY(y0) + moff.z + 64) / g[0]) * g[0] - 64; ct.toY(mz - moff.z) < y1; mz += g[0]) {
+        let y = ct.toY(mz - moff.z);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(this.mx0, y);
+        ctx.stroke();
+        ctx.fillText(`z:${mz}`, 2, y - 2);
+      }
+    }
+    ctx.restore();
+  }
+
 
   makeMenu() {
     let dispMenu = new Menu({ name: '表示' });

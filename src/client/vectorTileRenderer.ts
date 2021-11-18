@@ -22,8 +22,10 @@ export class VectorTileRenderer {
   ctrl: TaskControl | undefined;
   toX: (x: number) => number = x => x;
   toY: (y: number) => number = y => y;
-  canvasWidth = 0;
-  canvasHeight = 0;
+  x0 = 0;
+  y0 = 0;
+  x1 = 0;
+  y1 = 0;
 
   constructor(ctx: CanvasRenderingContext2D, ct: CoordinateTransformation, tb: TileBlockTranformation,
     tx: number, ty: number, vm: VectorTile) {
@@ -36,9 +38,11 @@ export class VectorTileRenderer {
     this.currentLayer = undefined;
   }
 
-  setCanvasSize(width: number, height: number) {
-    this.canvasWidth = width;
-    this.canvasHeight = height;
+  setArea(x0: number, y0: number, x1: number, y1: number) {
+    this.x0 = x0;
+    this.y0 = y0;
+    this.x1 = x1;
+    this.y1 = y1;
   }
 
   draw(ctrl: TaskControl) {
@@ -51,10 +55,15 @@ export class VectorTileRenderer {
       let y0 = this.toY(0);
       let y1 = this.toY(4096);
       let ctx = this.ctx;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(this.x0, this.y0, this.x1 - this.x0, this.y1 - this.y0);
+      ctx.clip();
       ctx.fillStyle = 'white';
       ctx.beginPath();
       ctx.rect(x0, y0, x1 - x0, y1 - y0);
       ctx.fill();
+      ctx.restore();
       ctx.lineWidth = 1;
       ctx.strokeStyle = 'black';
       ctx.fillStyle = 'lightgray';
@@ -118,6 +127,12 @@ export class VectorTileRenderer {
 
   drawFeatureWithVectors(feature: VectorFeature) {
     let ctx = this.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(this.x0, this.y0, this.x1 - this.x0, this.y1 - this.y0);
+    ctx.clip();
+
+
     feature.geo_parse((cmd, x, y) => {
       if (cmd == 'begin')
         ctx.beginPath();
@@ -138,19 +153,24 @@ export class VectorTileRenderer {
           ctx.stroke();
       }
     });
+    ctx.restore();
   }
 
   blockLine(bx0: number, by0: number, bx1: number, by1: number) {
     let x0 = this.ct.toX(bx0);
     let x1 = this.ct.toX(bx1);
-    if (x0 < 0 && x1 < 0) return;
-    if (x0 > this.canvasWidth && x1 > this.canvasWidth) return;
+    if (x0 < this.x0 && x1 < this.x0) return;
+    if (x0 > this.x1 && x1 > this.x1) return;
     let y0 = this.ct.toY(by0);
     let y1 = this.ct.toY(by1);
-    if (y0 < 0 && y1 < 0) return;
-    if (y0 > this.canvasHeight && y1 > this.canvasHeight) return;
+    if (y0 < this.y0 && y1 < this.y0) return;
+    if (y0 > this.y1 && y1 > this.y1) return;
 
     this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.rect(this.x0, this.y0, this.x1 - this.x0, this.y1 - this.y0);
+    this.ctx.clip();
+
     // this.ctx.globalAlpha = 0.5;
     let dx = Math.abs(bx1 - bx0);
     let dy = Math.abs(by1 - by0);

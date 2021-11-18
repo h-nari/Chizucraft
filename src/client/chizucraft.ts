@@ -1,5 +1,5 @@
 import * as L from 'leaflet';
-import { TileMaker, ProjectionParameter } from './tileMaker';
+import { ProjectionParameter } from './tileMaker';
 import { a, button, div, input, label, option, select, selected } from './tag';
 import { range, row } from './template';
 import { MineMap } from './mineMap';

@@ -22,7 +22,7 @@ export class TaskQueue {
     }
   }
 
-  add(func: TaskFunc, ctrl: TaskControl | undefined) {
+  add(func: TaskFunc, ctrl: TaskControl | undefined = undefined) {
     this.queue.push({ func, ctrl });
     this.check();
   }
