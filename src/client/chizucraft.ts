@@ -20,6 +20,10 @@ interface cc_stat {
   };
   filename?: string;
   tab?: string;
+  disp: {
+    tile: 'image' | 'vector';
+    grid: boolean;
+  }
 };
 
 export class Chizucraft {
@@ -44,7 +48,8 @@ export class Chizucraft {
       blocksize: 1,
       zoom: 15,
       marker: { disp: false, grid_size: 2048 },
-      minecraft_offset: { x: 0, y: 64, z: 0 }
+      minecraft_offset: { x: 0, y: 64, z: 0 },
+      disp: { tile: 'image', grid: true }
     };
     L.tileLayer(this.url_template, this.tile_attr).addTo(this.map);
     L.control.scale().addTo(this.map);
@@ -183,7 +188,7 @@ export class Chizucraft {
     if (stat_json) {
       let stat = JSON.parse(stat_json);
       stat.minecraft_offset ||= { x: 0, y: 64, z: 0 };
-      this.stat = stat as cc_stat;
+      Object.assign(this.stat, stat);
       if (stat.origin) {
         let oLatLng = L.latLng(stat.origin);
         let param: ProjectionParameter = {
@@ -209,7 +214,7 @@ export class Chizucraft {
     $('#' + target).removeClass('hidden');
     if (target == 'pane-minecraft-map') {
       this.mineMap.update_canvas_size();
-    } else if(target == 'pane-vector-map'){
+    } else if (target == 'pane-vector-map') {
       this.vectorMap.update_canvas_size();
     }
     if (this.stat.tab != target) {

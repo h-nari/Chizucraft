@@ -9,6 +9,55 @@ import { ProjectionParameter } from "./tileMaker";
 import { round } from "./util";
 import { VectorTile } from "./vectorTile";
 
+export interface MapSource {
+  name: string;
+  dispName: string;
+  url: string;
+  zoomMin: number;
+  zoomMax: number;
+  tileMax: number;
+  type: 'image' | 'vector';
+};
+
+const mapSorces: MapSource[] = [
+  {
+    name: 'gsi_std',
+    dispName: '地理院',
+    url: 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
+    zoomMin: 2,
+    zoomMax: 18,
+    tileMax: 8,
+    type: 'image'
+  },
+  {
+    name: 'gsi_photo',
+    dispName: '航空写真',
+    url: 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',
+    zoomMin: 2,
+    zoomMax: 18,
+    tileMax: 4,
+    type: 'image'
+  },
+  {
+    name: 'openStreetMap',
+    dispName: 'OpenStreetMap',
+    url: 'http://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    zoomMin: 2,
+    zoomMax: 18,
+    tileMax: 4,
+    type: 'image'
+  },
+  {
+    name: 'gsi_vector',
+    dispName: '地理院ベクター',
+    url: 'https://cyberjapandata.gsi.go.jp/xyz/experimental_bvmap/{z}/{x}/{y}.pbg',
+    zoomMin: 1,
+    zoomMax: 17,
+    tileMax: 1,
+    type: 'vector'
+  }
+];
+
 const grids = [
   [1, 'lightgray'],
   [4, '#ffc0c0'],
@@ -25,11 +74,11 @@ export class VectorMap {
   public zoom: number = 16;
   private menus: Menu[] = [];
   private taskQueue = new TaskQueue();
-  private drawType: 'line' | 'block' = 'line';
   private mx0 = 50;
   private mx1 = 0;
   private my0 = 20;
   private my1 = 0;
+  public mapSource = mapSorces[0];
 
   constructor(cc: Chizucraft, targetId: string) {
     this.cc = cc;
@@ -139,18 +188,26 @@ export class VectorMap {
 
   zoom_update() {
     if (!this.param) return;
-    if (this.zoom > 17) this.zoom = 17;
+    let zoom_max = this.mapSource.zoomMax;
+    let zoom_min = this.mapSource.zoomMin;
+    let tile_max = this.mapSource.tileMax;
+    if (this.zoom > zoom_max) this.zoom = zoom_max;
+    if (this.zoom < zoom_min) this.zoom = zoom_min;
     // 画面を覆うのに必要なタイル数を計算
     let blockWidth = this.canvas.width / this.ct.ax;
     let pointWidth = blockWidth * this.param.blocksize / this.param.mPerPoint.x;
     let tileWidth = pointWidth * Math.pow(2, this.zoom - this.param.zoom) / 256;
-    while (tileWidth > 2 && this.zoom > 8) {
+    while (tileWidth > tile_max && this.zoom > zoom_min) {
       tileWidth /= 2;
       this.zoom--;
     }
-    while (tileWidth < 1 && this.zoom < 17) {
+    while (tileWidth < tile_max && this.zoom < zoom_max) {
       tileWidth *= 2;
       this.zoom++;
+    }
+    if (this.cc.stat.zoom != this.zoom) {
+      this.cc.stat.zoom = this.zoom;
+      this.cc.saveStat();
     }
   }
 
@@ -171,24 +228,22 @@ export class VectorMap {
       for (let tx = tx0; ; tx += 256) {
         let x = this.ct.toX(tb.toBx(tx));
         if (x >= this.canvas.width) break;
-        var ctrl = new TaskControl();
-        this.taskQueue.add(() => {
-          return this.drawVectorTile(ctx, tx, ty, tb, ctrl);  // this.zoom, tx, tyのベクタータイルを描画
-        }, ctrl);
+        if (this.mapSource.type == 'vector') {
+          var ctrl = new TaskControl();
+          this.taskQueue.add(() => {
+            return this.drawVectorTile(ctx, tx, ty, tb, ctrl);  // this.zoom, tx, tyのベクタータイルを描画
+          }, ctrl);
+        } else {
+          this.taskQueue.add(() => {
+            return this.drawImageTile(ctx, tx, ty, tb);
+          });
+        }
       }
     }
-    this.taskQueue.add(() => { return this.drawGrid(ctx); });
+    if (this.cc.stat.disp.grid)
+      this.taskQueue.add(() => { return this.drawGrid(ctx); });
     this.taskQueue.add(() => { return this.drawXFrame(ctx); });
     this.taskQueue.add(() => { return this.drawYFrame(ctx); });
-  }
-
-
-  setClip(ctx: CanvasRenderingContext2D) {
-    let w = this.canvas.width - this.mx0 - this.mx1;
-    let h = this.canvas.height - this.my0 - this.my1;
-    ctx.beginPath();
-    ctx.rect(this.mx0, this.my0, w, h);
-    ctx.clip();
   }
 
   drawVectorTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation, ctrl: TaskControl) {
@@ -216,6 +271,34 @@ export class VectorMap {
       xhr.ontimeout = () => { reject("timeout"); };
       xhr.onabort = () => { reject("abort"); };
       xhr.send();
+    });
+  }
+
+  drawImageTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let vals = { x: Math.floor(tx / 256), y: Math.floor(ty / 256), z: this.zoom };
+      const template = this.mapSource.url;
+      let url = template.replace(/\{(x|y|z|t)\}/g, (substring: string, ...arg: string[]) =>
+        String(vals[arg[0] as 'x' | 'y' | 'z'] || `_${arg[0]}_undefined_`));
+      let img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.src = url;
+      img.onload = (e) => {
+        let x0 = this.ct.toX(tb.toBx(tx));
+        let x1 = this.ct.toX(tb.toBx(tx + 256));
+        let y0 = this.ct.toY(tb.toBy(ty));
+        let y1 = this.ct.toY(tb.toBy(ty + 256));
+
+        ctx.save();
+        ctx.beginPath();
+        let w = this.canvas.width - this.mx0 - this.mx1;
+        let h = this.canvas.height - this.my0 - this.my1;
+        ctx.rect(this.mx0, this.my0, w, h);
+        ctx.clip();
+        ctx.drawImage(img, x0, y0, x1 - x0, y1 - y0);
+        ctx.restore();
+        resolve();
+      }
     });
   }
 
@@ -311,13 +394,32 @@ export class VectorMap {
     let dispMenu = new Menu({ name: '表示' });
     this.menus.push(dispMenu);
     dispMenu.add({
-      name: 'ブロック表示',
-      with_check: this.drawType == 'block',
-      checked: true,
+      name: 'グリッド表示',
+      with_check: true,
+      onBeforeExpand: menu => {
+        menu.opt.checked = this.cc.stat.disp.grid;
+      },
       action: (e, menu) => {
-        menu.opt.checked = !menu.opt.checked;
-        this.drawType = menu.opt.checked ? 'block' : 'line';
+        this.cc.stat.disp.grid = menu.opt.checked = !menu.opt.checked;
+        this.cc.saveStat();
         this.draw();
+      }
+    }).add({
+      name: '地図タイプ',
+      action: (e, menu) => {
+        menu.clear();
+        for (let ms of mapSorces) {
+          menu.add({
+            name: ms.dispName,
+            with_check: true,
+            checked: this.mapSource == ms,
+            action: (e, menu) => {
+              this.mapSource = ms;
+              this.draw();
+            }
+          });
+        }
+        menu.expand(e);
       }
     });
 

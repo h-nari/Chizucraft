@@ -20,6 +20,8 @@ export interface MenuOption {
   badge?: string;
   separator?: boolean;
   class?: string;
+  children?: MenuOption[];
+  onBeforeExpand?: (menu: Menu) => void;
 };
 
 export class Menu {
@@ -30,17 +32,23 @@ export class Menu {
   constructor(opt: MenuOption = {}) {
     this.id = 'menu-' + sn++;
     this.opt = opt;
+    if (opt.children) {
+      for (let child_opt of opt.children) {
+        let c = new Menu(child_opt);
+        this.add(c);
+      }
+    }
   }
 
   innerHtml(): string {
     let opt = this.opt;
     let c = '';
 
-    if (opt.with_check) c += span({ class: 'with-check' }, opt.checked ? icon('check') : '');
     if (opt.icon) c += icon(opt.icon, 'icon ' + nullstr(opt.icon_class));
     if (opt.name) c += div({ class: 'name' }, opt.name);
     if (opt.right_icon) c += icon(opt.right_icon, 'right-icon ' + nullstr(opt.right_icon_class));
     if (opt.badge) c += span({ class: 'badge badge-danger' }, opt.badge);
+    if (opt.with_check) c += span({ class: 'with-check' }, opt.checked ? icon('check') : '');
     return c;
   }
 
@@ -75,6 +83,10 @@ export class Menu {
 
   expand(e: JQuery.ClickEvent) {
     if (this.subMenu.length > 0) {
+      this.subMenu.forEach((m) => {
+        if (m.opt.onBeforeExpand)
+          m.opt.onBeforeExpand(m);
+      });
       let s = this.subMenu.map(m => m.html()).join('');
       let sub_id = this.id + '-sub';
       let offset = $(e.currentTarget).offset();
