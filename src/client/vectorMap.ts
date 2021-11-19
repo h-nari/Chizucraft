@@ -19,6 +19,11 @@ export interface MapSource {
   type: 'image' | 'vector';
 };
 
+interface BlockPosition {
+  bx: number;
+  by: number;
+};
+
 const mapSorces: MapSource[] = [
   {
     name: 'gsi_std',
@@ -79,6 +84,7 @@ export class VectorMap {
   private my0 = 20;
   private my1 = 0;
   public mapSource = mapSorces[0];
+  public selected?: BlockPosition;
 
   constructor(cc: Chizucraft, targetId: string) {
     this.cc = cc;
@@ -110,8 +116,10 @@ export class VectorMap {
     var x0 = 0;
     var y0 = 0;
     var pressed = false;
+    var moved = false;
     $(this.canvas).on('mousedown', e => {
       pressed = true;
+      moved = false;
       x0 = e.clientX;
       y0 = e.clientY;
       e.preventDefault();
@@ -123,6 +131,7 @@ export class VectorMap {
           this.draw();
         x0 = x;
         y0 = y;
+        moved = true;
       }
       e.preventDefault();
     }).on('mouseup', e => {
@@ -132,6 +141,14 @@ export class VectorMap {
       }
       pressed = false;
       e.preventDefault();
+    }).on('click', e => {
+      if (!moved) {
+        let s = this.selected = {
+          bx: this.ct.fromX(e.clientX - this.canvas.offsetLeft),
+          by: this.ct.fromY(e.clientY - this.canvas.offsetTop)
+        };
+        this.draw();
+      }
     }).on('mousewheel', e => {
       let oe = e.originalEvent as WheelEvent;
       if (oe.deltaY > 0) this.zoomView(0.5, e);
@@ -176,7 +193,13 @@ export class VectorMap {
       return;
     }
     this.zoom_update();
-    this.status(`zoom:${this.zoom},   Block size:${this.ct.ax} pixel`);
+    let s = `zoom:${this.zoom},   Block size:${this.ct.ax} pixel`;
+    if (this.selected) {
+      let mx = this.selected.bx + this.cc.stat.minecraft_offset.x;
+      let mz = this.selected.by + this.cc.stat.minecraft_offset.z;
+      s += `  [${mx},${mz}]`;
+    }
+    this.status(s);
     this.taskQueue.clear();
     this.drawVectorMap(ctx);
   }
@@ -244,6 +267,7 @@ export class VectorMap {
       this.taskQueue.add(() => { return this.drawGrid(ctx); });
     this.taskQueue.add(() => { return this.drawXFrame(ctx); });
     this.taskQueue.add(() => { return this.drawYFrame(ctx); });
+    this.taskQueue.add(() => { return this.drawSelected(ctx) });
   }
 
   drawVectorTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation, ctrl: TaskControl) {
@@ -389,6 +413,22 @@ export class VectorMap {
     ctx.restore();
   }
 
+  async drawSelected(ctx: CanvasRenderingContext2D) {
+    let s = this.selected;
+    if (!s) return;
+    let ct = this.ct;
+    if (ct.ax < 1) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ct.toX(s.bx), ct.toY(s.by), ct.ax, ct.ay);
+    ctx.fillStyle = 'yellow';
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.5;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
 
   makeMenu() {
     let dispMenu = new Menu({ name: '表示' });
