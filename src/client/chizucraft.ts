@@ -5,7 +5,8 @@ import { range, row } from './template';
 import { MineMap } from './mineMap';
 import { Menu } from './menu';
 import { VectorTile } from './vectorTile';
-import { VectorMap } from './vectorMap';
+import { MapName, VectorMap } from './vectorMap';
+import { deepAssign } from './util';
 
 let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>";
 
@@ -21,7 +22,7 @@ interface cc_stat {
   filename?: string;
   tab?: string;
   disp: {
-    tile: 'image' | 'vector';
+    mapName: MapName;
     grid: boolean;
   }
 };
@@ -49,7 +50,7 @@ export class Chizucraft {
       zoom: 15,
       marker: { disp: false, grid_size: 2048 },
       minecraft_offset: { x: 0, y: 64, z: 0 },
-      disp: { tile: 'image', grid: true }
+      disp: { mapName: 'gsi_vector', grid: true }
     };
     L.tileLayer(this.url_template, this.tile_attr).addTo(this.map);
     L.control.scale().addTo(this.map);
@@ -187,18 +188,18 @@ export class Chizucraft {
     let stat_json = localStorage.getItem('chizucraft_stat');
     if (stat_json) {
       let stat = JSON.parse(stat_json);
-      stat.minecraft_offset ||= { x: 0, y: 64, z: 0 };
-      Object.assign(this.stat, stat);
-      if (stat.origin) {
-        let oLatLng = L.latLng(stat.origin);
+      deepAssign(this.stat, stat);
+      if (this.stat.origin) {
+        let oLatLng = L.latLng(this.stat.origin);
         let param: ProjectionParameter = {
-          zoom: stat.zoom,
-          oPoint: this.map.project(oLatLng, stat.zoom),
+          zoom: this.stat.zoom,
+          oPoint: this.map.project(oLatLng, this.stat.zoom),
           blocksize: stat.blocksize,
           mPerPoint: this.getMPerPoint()
         };
         this.mineMap.setParam(param);
         this.vectorMap.setParam(Object.assign({}, param));
+        this.vectorMap.setMap(this.stat.disp.mapName);
       }
       if (this.stat.tab)
         this.tab_set(this.stat.tab);
@@ -284,8 +285,10 @@ export class Chizucraft {
       if (elem.files && elem.files.length > 0) {
         let file = elem.files[0];
         let json = await file.text();
-        this.stat = JSON.parse(json) as cc_stat;
+        let stat = JSON.parse(json) as cc_stat;
+        deepAssign(this.stat, stat);
         this.stat.filename ||= file.name;
+        this.saveStat();
         $('#controller').html(this.html());
         this.bind();
         this.dispCurrentMapState();

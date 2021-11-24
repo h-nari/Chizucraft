@@ -9,8 +9,11 @@ import { ProjectionParameter } from "./tileMaker";
 import { round } from "./util";
 import { VectorTile } from "./vectorTile";
 
+
+export type MapName = 'gsi_std' | 'gsi_vector' | 'gsi_photo' | 'openStreet';
+
 export interface MapSource {
-  name: string;
+  name: MapName;
   dispName: string;
   url: string;
   zoomMin: number;
@@ -44,7 +47,7 @@ const mapSorces: MapSource[] = [
     type: 'image'
   },
   {
-    name: 'openStreetMap',
+    name: 'openStreet',
     dispName: 'OpenStreetMap',
     url: 'http://tile.openstreetmap.org/{z}/{x}/{y}.png',
     zoomMin: 2,
@@ -430,6 +433,17 @@ export class VectorMap {
     ctx.restore();
   }
 
+  setMap(mapName: MapName) {
+    for (let ms of mapSorces) {
+      if (ms.name == mapName) {
+        this.mapSource = ms;
+        this.draw();
+        return;
+      }
+    }
+    throw new Error(`mapName:${mapName} not defined`);
+  }
+
   makeMenu() {
     let dispMenu = new Menu({ name: '表示' });
     this.menus.push(dispMenu);
@@ -455,6 +469,8 @@ export class VectorMap {
             checked: this.mapSource == ms,
             action: (e, menu) => {
               this.mapSource = ms;
+              this.cc.stat.disp.mapName = ms.name;
+              this.cc.saveStat();
               this.draw();
             }
           });

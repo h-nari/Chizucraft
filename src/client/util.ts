@@ -70,3 +70,16 @@ export function split_yymm(yymm: string) {
 export function round(x: number, y: number) {
   return Math.floor(x / y) * y;
 }
+
+export function deepAssign(target: { [key: string]: any }, src: { [key: string]: any }) {
+  for (const [key, value] of Object.entries(src)) {
+    if (typeof (value) != 'object') {
+      target[key] = value;
+    } else if (Array.isArray(value)) {
+      target[key] = (value as any[]).concat();
+    } else {
+      target[key] = {};
+      deepAssign(target[key], value);
+    }
+  }
+}
