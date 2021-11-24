@@ -56,7 +56,7 @@ const mapSorces: MapSource[] = [
     name: 'gsi_vector',
     dispName: '地理院ベクター',
     url: 'https://cyberjapandata.gsi.go.jp/xyz/experimental_bvmap/{z}/{x}/{y}.pbg',
-    zoomMin: 1,
+    zoomMin: 8,
     zoomMax: 17,
     tileMax: 1,
     type: 'vector'
