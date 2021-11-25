@@ -11,11 +11,13 @@ let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' tar
 interface cc_stat {
   blocksize: number;    // minecraft block size[m]
   origin?: [number, number];  // LatLng
+  origin_disp: boolean;
   minecraft_offset: { x: number, y: number, z: number }; // 原点のminecraft上の座標 [x,y,z]
   zoom: number;
   marker: {
     disp: boolean;
     grid_size: number;
+    latlng?: [number, number];
   };
   filename?: string;
   tab?: string;
@@ -33,6 +35,7 @@ export class Chizucraft {
   public map: L.Map;
   public stat: cc_stat;
   public markers: L.Layer[] = [];
+  public origins: L.Layer[] = [];
   public cLatLng: L.LatLng; // 画面中心の座標
   public lockMarker = false;
   public vectorMap: VectorMap;
@@ -43,6 +46,7 @@ export class Chizucraft {
     this.map = L.map('map');
     this.vectorMap = new VectorMap(this, 'pane-vector-map');
     this.stat = {
+      origin_disp: false,
       blocksize: 1,
       zoom: 15,
       marker: { disp: false, grid_size: 2048 },
@@ -72,6 +76,21 @@ export class Chizucraft {
       this.dispCurrentMapState();
       this.saveView();
     })
+    this.map.on('keydown', e => {
+      let ke = e as L.LeafletKeyboardEvent;
+      console.log('key:', ke.originalEvent.key);
+      if (ke.originalEvent.key == 'Control') {
+        this.markerFixToScreen = true;
+      }
+    });
+    this.map.on('keyup', e => {
+      let ke = e as L.LeafletKeyboardEvent;
+      console.log('key:', ke.originalEvent.key);
+      if (ke.originalEvent.key == 'Control') {
+        let ke = e as L.LeafletKeyboardEvent;
+        this.markerFixToScreen = false;
+      }
+    });
 
     this.makeMenu();
 
@@ -82,6 +101,8 @@ export class Chizucraft {
     this.dispCurrentMapState();
     if (this.stat.marker.disp)
       this.drawMarker();
+    if (this.stat.origin_disp)
+      this.drawOrigin();
     this.saveStat();
   }
 
@@ -241,12 +262,6 @@ export class Chizucraft {
       this.saveStat();
     })
 
-    // 基準点クリア
-    $('.btn-clear-map-origin').on('click', e => {
-      console.log('clear');
-      this.stat.origin = undefined;
-      this.removeMarker();
-    });
     // 基準点に移動
     $('.btn-moveto-map-origin').on('click', e => {
       if (this.stat.origin) {
@@ -255,10 +270,6 @@ export class Chizucraft {
         this.cLatLng = this.map.getBounds().getCenter();
         this.lockMarker = false;
       }
-    });
-    // 地図をクリックして指定
-    $('.btn-set-map-origin').on('click', e => {
-      console.log('set origin');
     });
     // load
     $('.btn-file-load').on('click', e => {
@@ -288,19 +299,36 @@ export class Chizucraft {
 
   }
 
+
+  drawOrigin() {
+    this.removeOrigins();
+    if (this.stat.origin) {
+      let marker = L.marker(this.stat.origin, {
+        title: 'origin'
+      });
+      this.origins.push(marker);
+      this.map.addLayer(marker);
+    }
+  }
+
+  removeOrigins() {
+    for (let layer of this.origins)
+      this.map.removeLayer(layer);
+    this.origins = [];
+  }
+
   drawMarker() {
     this.removeMarker();
     let map = this.map;
     let cLatlng: L.LatLng;
-    if (!this.stat.origin) {
+    if (!this.stat.marker.latlng) {
       let cPoint = map.getPixelBounds().getCenter();
       let zoom = map.getZoom();
       cLatlng = map.unproject(cPoint, zoom);
-      this.stat.origin = [cLatlng.lat, cLatlng.lng];
-      $('#controller .map-origin').text(this.stat.origin.toString());
+      this.stat.marker.latlng = [cLatlng.lat, cLatlng.lng];
       this.saveStat();
     } else {
-      cLatlng = L.latLng(this.stat.origin);
+      cLatlng = L.latLng(this.stat.marker.latlng);
     }
 
     let marker_opt = { color: 'blue', weight: 1 };
@@ -342,13 +370,13 @@ export class Chizucraft {
 
   moveMap() {
     let cLatLng = this.map.getBounds().getCenter();
-    let fixTo = $('#controller .marker-fix-to').val() as string;
-
-    if (fixTo == 'screen' && this.stat.origin && !this.lockMarker) {
-      this.stat.origin[0] += cLatLng.lat - this.cLatLng.lat;
-      this.stat.origin[1] += cLatLng.lng - this.cLatLng.lng;
+    if (this.markerFixToScreen && this.stat.marker.latlng) {
+      this.stat.marker.latlng[0] += cLatLng.lat - this.cLatLng.lat;
+      this.stat.marker.latlng[1] += cLatLng.lng - this.cLatLng.lng;
       this.cLatLng = cLatLng;
       this.drawMarker();
+    } else {
+      this.cLatLng = cLatLng;
     }
 
     this.dispCurrentMapState();
@@ -400,7 +428,25 @@ export class Chizucraft {
       name: '基準点',
       children: [
         {
-          name: '基準点をクリア'
+          name: '基準点を表示',
+          with_check: true,
+          onBeforeExpand: menu => {
+            menu.opt.checked = this.stat.origin_disp;
+          },
+          action: (e, menu) => {
+            let v = this.stat.origin_disp = !this.stat.origin_disp;
+            if (v) this.drawOrigin();
+            else this.removeOrigins();
+            this.saveStat();
+          }
+        },
+        {
+          name: '基準点をクリア',
+          action: (e, menu) => {
+            this.stat.origin = undefined;
+            this.removeOrigins();
+            this.saveStat();
+          }
         },
         {
           name: '基準点をマーカーの位置に設定'
@@ -410,7 +456,6 @@ export class Chizucraft {
           name: 'マーカー表示',
           with_check: true,
           onBeforeExpand: menu => {
-            console.log('beforeExpand');
             menu.opt.checked = this.stat.marker.disp;
           },
           action: (e, menu) => {
@@ -418,6 +463,16 @@ export class Chizucraft {
             if (v) this.drawMarker();
             else this.removeMarker();
             this.saveStat();
+          }
+        },
+        {
+          name: 'マーカーの位置に移動',
+          action: (e, menu) => {
+            if (this.stat.marker.latlng) {
+              this.map.panTo(L.latLng(this.stat.marker.latlng));
+            } else {
+              $.alert('マーカーが設定されていません');
+            }
           }
         },
         {
