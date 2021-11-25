@@ -1,4 +1,4 @@
-import { Chizucraft } from "./chizucraft";
+import { Chizucraft, helpMenu } from "./chizucraft";
 import { CoordinateTransformation } from "./ct";
 import { VectorTileRenderer } from "./vectorTileRenderer";
 import { Menu } from "./menu";
@@ -479,10 +479,7 @@ export class VectorMap {
       }
     });
 
-
-    let helpMenu = new Menu({ name: 'ヘルプ' });
-    this.menus.push(helpMenu);
-    helpMenu.add({ name: 'この地図について' })
+    this.menus.push(helpMenu());
   }
 }
 

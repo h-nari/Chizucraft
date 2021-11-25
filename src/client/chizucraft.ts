@@ -2,9 +2,7 @@ import * as L from 'leaflet';
 import { ProjectionParameter } from './tileMaker';
 import { a, button, div, input, label, option, select, selected } from './tag';
 import { range, row } from './template';
-import { MineMap } from './mineMap';
 import { Menu } from './menu';
-import { VectorTile } from './vectorTile';
 import { MapName, VectorMap } from './vectorMap';
 import { deepAssign } from './util';
 
@@ -37,13 +35,12 @@ export class Chizucraft {
   public markers: L.Layer[] = [];
   public cLatLng: L.LatLng; // 画面中心の座標
   public lockMarker = false;
-  public mineMap: MineMap;
   public vectorMap: VectorMap;
-  public helpMenu: Menu;
+  public menus: Menu[] = [];
+  public markerFixToScreen: boolean = false;
 
   constructor() {
     this.map = L.map('map');
-    this.mineMap = new MineMap(this, 'pane-minecraft-map');
     this.vectorMap = new VectorMap(this, 'pane-vector-map');
     this.stat = {
       blocksize: 1,
@@ -75,12 +72,8 @@ export class Chizucraft {
       this.dispCurrentMapState();
       this.saveView();
     })
-    this.helpMenu = new Menu({ name: 'ヘルプ' });
-    this.helpMenu.add({
-      name: '使い方'
-    }).add({
-      name: 'このプログラムについて'
-    });
+
+    this.makeMenu();
 
 
     this.cLatLng = this.map.getBounds().getCenter();
@@ -102,7 +95,7 @@ export class Chizucraft {
       div({ class: 'value' })
     )
     s += div({ class: 'd-inlineblock flex-fill' });
-    s += this.helpMenu.html();
+    this.menus.forEach(m => { s += m.html(); });
     return s;
   }
 
@@ -150,8 +143,7 @@ export class Chizucraft {
         button({ class: 'btn btn-sm btn-primary btn-set-map-origin' }, '地図をクリックして指定')),
       row('ピクセル化',
         div('使用するzool level'),
-        select({ class: 'mmap-zoom' }, ...range(this.map.getMaxZoom(), 4).map(z => option({ value: z, selected: selected(this.stat.zoom == z) }, z))),
-        button({ class: 'btn btn-sm btn-primary btn-vector-test' }, 'Vector Test')),
+        select({ class: 'mmap-zoom' }, ...range(this.map.getMaxZoom(), 4).map(z => option({ value: z, selected: selected(this.stat.zoom == z) }, z)))),
       row('ファイル',
         div(
           div('ファイル名'),
@@ -197,8 +189,7 @@ export class Chizucraft {
           blocksize: stat.blocksize,
           mPerPoint: this.getMPerPoint()
         };
-        this.mineMap.setParam(param);
-        this.vectorMap.setParam(Object.assign({}, param));
+        this.vectorMap.setParam(param);
         this.vectorMap.setMap(this.stat.disp.mapName);
       }
       if (this.stat.tab)
@@ -213,11 +204,8 @@ export class Chizucraft {
     $('.tab-bar div.tab').addClass('hidden');
     $(`.tab-bar a.nav-link[target=${target}]`).addClass('active');
     $('#' + target).removeClass('hidden');
-    if (target == 'pane-minecraft-map') {
-      this.mineMap.update_canvas_size();
-    } else if (target == 'pane-vector-map') {
+    if (target == 'pane-vector-map')
       this.vectorMap.update_canvas_size();
-    }
     if (this.stat.tab != target) {
       this.stat.tab = target;
       this.saveStat();
@@ -225,7 +213,7 @@ export class Chizucraft {
   }
 
   bind() {
-    this.helpMenu.bind();
+    this.menus.forEach(m => m.bind());
     $('#controller .block-size').on('change', e => {
       let bs = parseInt($(e.currentTarget).val() as string);
       this.stat.blocksize = bs == 0 ? 1 : bs;
@@ -271,10 +259,6 @@ export class Chizucraft {
     // 地図をクリックして指定
     $('.btn-set-map-origin').on('click', e => {
       console.log('set origin');
-    });
-    // test
-    $('.btn-vector-test').on('click', e => {
-      this.vector_test();
     });
     // load
     $('.btn-file-load').on('click', e => {
@@ -411,89 +395,78 @@ export class Chizucraft {
     }
   }
 
-  async vector_test() {
-    this.tab_set('pane-work-canvas')
-    let s = this.stat;
-    if (s.origin) {
-      let oLatLng = L.latLng(s.origin);
-      let param: ProjectionParameter = {
-        zoom: s.zoom,
-        oPoint: this.map.project(oLatLng, s.zoom),
-        blocksize: s.blocksize,
-        mPerPoint: this.getMPerPoint()
-      };
-      let zoom = 17;
-      let p = this.map.project(oLatLng, zoom);
-      let vals = { x: Math.floor(p.x / 256), y: Math.floor(p.y / 256), z: zoom, t: 'experimental_bvmap' };
-      const template = 'https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.pbf';
-      let url = template.replace(/\{(x|y|z|t)\}/g, (substring: string, ...arg: string[]) =>
-        String(vals[arg[0] as 'x' | 'y' | 'z' | 't'] || `_${arg[0]}_undefined_`));
-      console.log('vector_test:' + url);
-      let xhr = new XMLHttpRequest();
-      xhr.open('GET', url, true);
-      xhr.responseType = 'arraybuffer';
-      xhr.onload = function (e) {
-        var arrayBuffer = this.response;
-        if (arrayBuffer) {
-          var data = new Uint8Array(arrayBuffer);
-          var vm = new VectorTile(data);
-          let canvas = document.getElementById('work-canvas3') as HTMLCanvasElement;
-          var ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.lineWidth = 4;
-            let scale = 0.20;
-            ctx.scale(scale, scale);
-
-            let colors = ['black', 'red', 'blue', 'green', 'orange', 'darkgray', 'orange', 'yellow', 'violet', 'cyan'];
-            let ci = 0;
-
-            for (let name in vm.layers) {
-              // if(name == 'building') continue;
-              let layer = vm.layers[name];
-
-              if (++ci >= colors.length) ci = 0;
-              console.log(name, ' color:', colors[ci], 'size:', layer.features.length);
-              ctx.strokeStyle = colors[ci];
-              ctx.fillStyle = colors[ci];
-
-              let summary: { [attr: string]: number } = {};
-
-              let cnt = 0;
-              for (let f of layer.features) {
-                for (let attr in f.getAttrs())
-                  summary[attr] = attr in summary ? summary[attr] + 1 : 1;
-                if (name == 'road' && f.attr('rnkWidth')) continue;
-                f.geo_parse((cmd, x, y) => {
-                  if (ctx) {
-                    if (cmd == 'begin') ctx.beginPath();
-                    else if (cmd == 'moveto') ctx.moveTo(x, y);
-                    else if (cmd == 'lineto') ctx.lineTo(x, y);
-                    else if (cmd == 'closepath') ctx.closePath();
-                    else if (cmd == 'end') {
-                      if (f.feature.getType() == 3) {
-                        ctx.save();
-                        ctx.globalAlpha = 0.2;
-                        ctx.fill()
-                        ctx.restore();
-                      }
-                      ctx.stroke();
-                    }
-                  }
-                });
-                cnt++;
-              }
-              console.log(`----${name}:${layer.features.length}---`);
-              for (let attr in summary)
-                console.log(`${attr}:${summary[attr]}`);
+  private makeMenu() {
+    let originMenu = new Menu({
+      name: '基準点',
+      children: [
+        {
+          name: '基準点をクリア'
+        },
+        {
+          name: '基準点をマーカーの位置に設定'
+        },
+        { separator: true },
+        {
+          name: 'マーカー表示',
+          with_check: true,
+          onBeforeExpand: menu => {
+            console.log('beforeExpand');
+            menu.opt.checked = this.stat.marker.disp;
+          },
+          action: (e, menu) => {
+            let v = this.stat.marker.disp = !this.stat.marker.disp;
+            if (v) this.drawMarker();
+            else this.removeMarker();
+            this.saveStat();
+          }
+        },
+        {
+          name: 'マーカーを画面に固定',
+          with_check: true,
+          onBeforeExpand: menu => {
+            menu.opt.checked = this.markerFixToScreen;
+          },
+          action: (e, menu) => {
+            this.markerFixToScreen = !this.markerFixToScreen;
+          }
+        },
+        {
+          name: 'マーカーのサイズ',
+          action: (e, menu) => {
+            menu.clear();
+            for (let s of [128, 256, 512, 1024, 2048]) {
+              menu.add({
+                name: `${s} x ${s}ブロック`,
+                checked: s == this.stat.marker.grid_size,
+                action: (e, menu) => {
+                  this.stat.marker.grid_size = s;
+                  if (this.markers.length > 0)
+                    this.drawMarker();
+                  this.saveStat();
+                }
+              });
             }
-            ctx.restore();
+            menu.expand(e);
           }
         }
-      }
-      xhr.send();
-    }
+      ]
+    })
+    this.menus.push(originMenu);
+    this.menus.push(helpMenu());
   }
 };
+
+export function helpMenu() {
+  let menu = new Menu({
+    name: 'ヘルプ',
+    children: [
+      {
+        name: 'このプログラムについて'
+      },
+      {
+        name: '使い方'
+      }
+    ]
+  });
+  return menu;
+}
