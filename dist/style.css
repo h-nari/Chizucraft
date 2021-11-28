@@ -24,7 +24,7 @@ div.vector-map {
   overflow: auto;
 }
 .tab-pane #map {
-  height: 68vh;
+  height: calc(100% - 60px);
 }
 .tab-pane #work-canvas1,
 .tab-pane #work-canvas2 {

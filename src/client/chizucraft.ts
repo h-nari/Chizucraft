@@ -97,7 +97,7 @@ export class Chizucraft {
 
     this.cLatLng = this.map.getBounds().getCenter();
     $('#map-pane .topbar').html(this.html_topbar());
-    $('#controller').html(this.html());
+    // $('#controller').html(this.html());
     this.dispCurrentMapState();
     if (this.stat.marker.disp)
       this.drawMarker();
@@ -122,54 +122,11 @@ export class Chizucraft {
 
   html() {
     return div({ class: 'chizu-controller' },
-      row('現在の地図',
-        div({ class: 'label' }, '中心の座標', div({ class: 'center-latlng' })),
-        div({ class: 'label' }, 'zoom ', div({ class: 'current-zoom' }))
-      ),
-      row('スケール',
-        div(select({ class: 'block-size' },
-          ...[1, 10, 100, 1000, 0].map(v => option({
-            value: v, selected: selected(v == this.stat.blocksize)
-          }, v ? `1ブロック${v}m` : '任意に設定'))
-        )),
-        div({ class: 'rotation' },
-          '回転 ',
-          input({ type: 'number', value: 0 }))
-      ),
-      row('マーカー',
-        div({ class: 'chk-disp-marker' },
-          input({ type: 'checkbox', checked: selected(this.stat.marker.disp) }),
-          label('表示')),
-        div('マーカーサイズ ',
-          select({ class: 'grid-size' },
-            ...range(7, 12).map(i => {
-              let s = 2 ** i;
-              return option(
-                {
-                  value: s,
-                  selected: selected(this.stat.marker.grid_size == s)
-                }, `${s} x ${s}ブロック`)
-            })
-          )),
-        div(
-          select({ class: 'marker-fix-to' },
-            option({ value: 'map' }, '地図に固定'),
-            option({ value: 'screen' }, '画面に固定')))
-      ),
-      row('地図の基準点',
-        div({ class: 'map-origin' },
-          this.stat.origin ? this.stat.origin.toString() : ''),
-        button({ class: 'btn btn-sm btn-primary btn-clear-map-origin' }, 'クリア'),
-        button({ class: 'btn btn-sm btn-primary btn-moveto-map-origin' }, '基準点に移動'),
-        button({ class: 'btn btn-sm btn-primary btn-set-map-origin' }, '地図をクリックして指定')),
-      row('ピクセル化',
-        div('使用するzool level'),
-        select({ class: 'mmap-zoom' }, ...range(this.map.getMaxZoom(), 4).map(z => option({ value: z, selected: selected(this.stat.zoom == z) }, z)))),
       row('ファイル',
         div(
           div('ファイル名'),
           div({ class: 'filename' }, this.stat.filename || '%noname%')),
-        input({ type: 'file', id: 'input-file-load', style: 'display:none' }),
+        input({ type: 'file', id: 'input-file-load0', style: 'display:none' }),
         button({ class: 'btn btn-sm btn-primary btn-file-load' }, 'Load'),
         a({ class: 'btn btn-sm btn-primary btn-file-save' }, 'Save')
       ),
@@ -216,6 +173,7 @@ export class Chizucraft {
       if (this.stat.tab)
         this.tab_set(this.stat.tab);
     }
+    this.setTitle();
   }
 
   tab_set(target: string) {
@@ -235,46 +193,7 @@ export class Chizucraft {
 
   bind() {
     this.menus.forEach(m => m.bind());
-    $('#controller .block-size').on('change', e => {
-      let bs = parseInt($(e.currentTarget).val() as string);
-      this.stat.blocksize = bs == 0 ? 1 : bs;
-      this.saveStat();
-    });
-    $('#controller .chk-disp-marker input').on('change', e => {
-      let v = $(e.currentTarget).prop('checked');
-      if (v)
-        this.drawMarker();
-      else
-        this.removeMarker();
-      this.stat.marker.disp = v;
-      this.saveStat();
-    });
-    $('#controller .grid-size').on('change', e => {
-      let size = $(e.currentTarget).val() as number;
-      console.log('grid-size:', size);
-      this.stat.marker.grid_size = size;
-      if (this.markers.length > 0)
-        this.drawMarker();
-      this.saveStat();
-    });
-    $('#controller .mmap-zoom').on('change', e => {
-      this.stat.zoom = Number($(e.currentTarget).val());
-      this.saveStat();
-    })
-
-    // 基準点に移動
-    $('.btn-moveto-map-origin').on('click', e => {
-      if (this.stat.origin) {
-        this.lockMarker = true;
-        this.map.panTo(this.stat.origin, { animate: false });
-        this.cLatLng = this.map.getBounds().getCenter();
-        this.lockMarker = false;
-      }
-    });
     // load
-    $('.btn-file-load').on('click', e => {
-      this.fileLoad();
-    });
     $('#input-file-load').on('change', async e => {
       let elem = e.target as HTMLInputElement;
       if (elem.files && elem.files.length > 0) {
@@ -284,19 +203,21 @@ export class Chizucraft {
         deepAssign(this.stat, stat);
         this.stat.filename ||= file.name;
         this.saveStat();
-        $('#controller').html(this.html());
-        this.bind();
+        // $('#controller').html(this.html());
+        // this.bind();
         this.dispCurrentMapState();
         if (this.stat.marker.disp)
           this.drawMarker();
+        this.setTitle();
       }
     });
 
-    // save
-    $('.btn-file-save').on('click', e => {
-      this.fileSave(e.currentTarget as HTMLAnchorElement);
-    });
+  }
 
+  setTitle() {
+    document.title = 'Chizucraft';
+    if (this.stat.filename)
+      document.title += '/' + this.stat.filename;
   }
 
 
@@ -362,9 +283,8 @@ export class Chizucraft {
 
   dispCurrentMapState() {
     let map = this.map;
-    $('.center-latlng').text(this.cLatLng.toString());
-    $('.current-zoom').text(map.getZoom());
-    $('.map-origin').text(this.stat.origin ? this.stat.origin.toString() : '');
+    $('.zoom .value').text(map.getZoom());
+    $('.origin .value').text(this.stat.origin ? this.stat.origin.toString() : '');
 
   }
 
@@ -390,13 +310,15 @@ export class Chizucraft {
       fileElem.click();
   }
 
-  fileSave(target: HTMLAnchorElement) {
+  fileSave() {
+    let target = document.getElementById('anchor-file-save') as HTMLAnchorElement;
     console.log('download');
     let content = JSON.stringify(this.stat, null, 2);
     let blob = new Blob([content], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     target.download = this.stat.filename || '';
     target.href = url;
+    target.click();
     setTimeout(() => { URL.revokeObjectURL(url); }, 1E3);
   }
 
@@ -424,6 +346,20 @@ export class Chizucraft {
   }
 
   private makeMenu() {
+    this.menus.push(new Menu({
+      name: 'ファイル',
+      children: [{
+        name: '設定をロード',
+        action: (e, menu) => {
+          console.log('menu file load');
+          this.fileLoad();
+        }, {
+        name: '設定をセーブ',
+        action: (e, menu) => { this.fileSave(); }
+      }]
+    }));
+
+
     let originMenu = new Menu({
       name: '基準点',
       children: [

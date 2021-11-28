@@ -4,7 +4,7 @@
   height: 95vh;
   overflow: auto;
   #map {
-    height: 68vh;
+    height: calc(100% - 60px);
   }
   #work-canvas1,
   #work-canvas2 {
