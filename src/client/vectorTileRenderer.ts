@@ -69,10 +69,11 @@ export class VectorTileRenderer {
       ctx.fillStyle = 'lightgray';
       this.fResolve = resolve;
       this.fReject = reject;
-      this.drawFuncs = [
-        (feature) => { this.drawFeatureWithBlocks(feature) },
-        (feature) => { this.drawFeatureWithVectors(feature) }
-      ];
+      this.drawFuncs = [];
+      if (this.ct.ax >= 4)
+        this.drawFuncs.push((feature) => { this.drawFeatureWithBlocks(feature) });
+      this.drawFuncs.push((feature) => { this.drawFeatureWithVectors(feature) });
+
       this.check();
     });
   }
@@ -87,7 +88,8 @@ export class VectorTileRenderer {
   check() {
     if (this.ctrl?.stop)
       return this.resolve('stop');
-    for (let i = 0; i < 500; i++) {
+    let tStart = performance.now();
+    while (performance.now() - tStart < 100) {
       if (this.currentDrawFunc && this.features.length > 0) {
         this.currentDrawFunc(this.features.shift() as VectorFeature);
       } else if (this.currentDrawFunc && this.layers.length > 0) {
