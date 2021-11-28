@@ -195,6 +195,7 @@ export class VectorMap {
       ctx.fillText('基準点が指定されていません', c.width / 2, c.height / 2);
       return;
     }
+    await this.taskQueue.clear();
     this.zoom_update();
     let s = `zoom:${this.zoom},   Block size:${this.ct.ax} pixel`;
     if (this.selected) {
@@ -203,7 +204,6 @@ export class VectorMap {
       s += `  [${mx},${mz}]`;
     }
     this.status(s);
-    this.taskQueue.clear();
     this.drawVectorMap(ctx);
   }
 
