@@ -152,13 +152,13 @@ export class VectorMap {
         };
         this.draw();
       }
-    }).on('mousewheel', e => {
+    }).on('wheel', e => {
       let oe = e.originalEvent as WheelEvent;
       if (oe.deltaY > 0) this.zoomView(0.5, e);
       else if (oe.deltaY < 0) this.zoomView(2, e);
       e.preventDefault();
       e.stopPropagation();
-    })
+    });
   }
 
   zoomView(factor: number, e: JQuery.TriggeredEvent) {
