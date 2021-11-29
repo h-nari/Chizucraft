@@ -88,6 +88,7 @@ export class VectorMap {
   private my1 = 0;
   public mapSource = mapSorces[0];
   public selected?: BlockPosition;
+  private gen = 0;
 
   constructor(cc: Chizucraft, targetId: string) {
     this.cc = cc;
@@ -140,7 +141,6 @@ export class VectorMap {
       e.preventDefault();
     }).on('mouseup', e => {
       if (this.ct.pan(e.clientX - x0, e.clientY - y0)) {
-        console.log('up:', e.clientX - x0, e.clientY - y0);
         this.draw();
       }
       pressed = false;
@@ -184,6 +184,7 @@ export class VectorMap {
   }
 
   async draw() {
+    let gen = ++this.gen;
     let c = this.canvas;
     let ctx = c.getContext('2d');
     if (!ctx) return;
@@ -197,15 +198,17 @@ export class VectorMap {
       return;
     }
     await this.taskQueue.clear();
-    this.zoom_update();
-    let s = `zoom:${this.zoom},   Block size:${this.ct.ax} pixel`;
-    if (this.selected) {
-      let mx = this.selected.bx + this.cc.stat.minecraft_offset.x;
-      let mz = this.selected.by + this.cc.stat.minecraft_offset.z;
-      s += `  [${mx},${mz}]`;
+    if (gen == this.gen) {
+      this.zoom_update();
+      let s = `zoom:${this.zoom},   Block size:${this.ct.ax} pixel`;
+      if (this.selected) {
+        let mx = this.selected.bx + this.cc.stat.minecraft_offset.x;
+        let mz = this.selected.by + this.cc.stat.minecraft_offset.z;
+        s += `  [${mx},${mz}]`;
+      }
+      this.status(s);
+      this.drawVectorMap(ctx, gen);
     }
-    this.status(s);
-    this.drawVectorMap(ctx);
   }
 
   status(html: string) {
@@ -238,8 +241,9 @@ export class VectorMap {
     }
   }
 
-  drawVectorMap(ctx: CanvasRenderingContext2D) {
+  async drawVectorMap(ctx: CanvasRenderingContext2D, gen: number) {
     if (!this.param) return;
+    if (this.gen != gen) return;
     // 画面左上のタイル座標を求める
     let param = this.param;
     let tb = new TileBlockTranformation(param, this.zoom);
@@ -267,11 +271,14 @@ export class VectorMap {
         }
       }
     }
-    if (this.cc.stat.disp.grid)
-      this.taskQueue.add(() => { return this.drawGrid(ctx); });
-    this.taskQueue.add(() => { return this.drawXFrame(ctx); });
-    this.taskQueue.add(() => { return this.drawYFrame(ctx); });
-    this.taskQueue.add(() => { return this.drawSelected(ctx) });
+    await this.taskQueue.waitAllTaskDone();
+    if (gen == this.gen) {
+      if (this.cc.stat.disp.grid)
+        this.taskQueue.add(() => { return this.drawGrid(ctx); }, new TaskControl());
+      this.taskQueue.add(() => { return this.drawXFrame(ctx); }, new TaskControl());
+      this.taskQueue.add(() => { return this.drawYFrame(ctx); }, new TaskControl());
+      this.taskQueue.add(() => { return this.drawSelected(ctx) }, new TaskControl());
+    }
   }
 
   drawVectorTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation, ctrl: TaskControl) {
@@ -446,20 +453,29 @@ export class VectorMap {
   }
 
   makeMenu() {
-    let dispMenu = new Menu({ name: '表示' });
-    this.menus.push(dispMenu);
-    dispMenu.add({
-      name: 'グリッド表示',
-      with_check: true,
-      onBeforeExpand: menu => {
-        menu.opt.checked = this.cc.stat.disp.grid;
-      },
-      action: (e, menu) => {
-        this.cc.stat.disp.grid = menu.opt.checked = !menu.opt.checked;
-        this.cc.saveStat();
-        this.draw();
-      }
-    }).add({
+    this.menus.push(new Menu({
+      name: '表示',
+      children: [{
+        name: 'グリッド表示',
+        with_check: true,
+        onBeforeExpand: menu => {
+          menu.opt.checked = this.cc.stat.disp.grid;
+        },
+        action: (e, menu) => {
+          this.cc.stat.disp.grid = menu.opt.checked = !menu.opt.checked;
+          this.cc.saveStat();
+          this.draw();
+        }
+      }, {
+        name: '基準点に移動',
+        action: (e, menu) => {
+          this.ct.moveTo(0, 0, this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
+          this.draw();
+        }
+      }]
+    }));
+
+    this.menus.push(new Menu({
       name: '地図タイプ',
       action: (e, menu) => {
         menu.clear();
@@ -478,8 +494,7 @@ export class VectorMap {
         }
         menu.expand(e);
       }
-    });
-
+    }));
     this.menus.push(helpMenu());
   }
 }

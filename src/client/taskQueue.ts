@@ -16,7 +16,7 @@ export class TaskQueue {
     return Object.keys(this.running).length;
   }
 
-  clear() {
+  clear0() {
     return new Promise((resolve, reject) => {
       this.queue = [];
       if (this.runningTaskCount() == 0) {
@@ -32,10 +32,28 @@ export class TaskQueue {
     })
   }
 
+  clear() {
+    this.queue = [];
+    for (let c of Object.values(this.running))
+      if (c) c.stop = true;
+    if (this.runningTaskCount() > 0)
+      this.waitingAllTaskDone = true;
+    return this.waitAllTaskDone();
+  }
+
+  waitAllTaskDone() {
+    return new Promise((resolve, reject) => {
+      if (this.queue.length == 0 && this.runningTaskCount() == 0) {
+        resolve(true);
+      } else {
+        this.resolves.push(resolve);
+      }
+    });
+  }
+
   add(func: TaskFunc, ctrl: TaskControl | undefined = undefined) {
-    if (this.waitingAllTaskDone)
-      throw new Error('waiting all task done');
-    this.queue.push({ func, ctrl });
+    if (!ctrl?.stop && !this.waitingAllTaskDone)
+      this.queue.push({ func, ctrl });
     this.check();
   }
 
@@ -47,10 +65,12 @@ export class TaskQueue {
       this.running[id] = task.ctrl;
       task.func().finally(() => {
         delete this.running[id];
-        if (this.runningTaskCount() == 0) {
+        if (this.queue.length == 0 && this.runningTaskCount() == 0) {
           this.waitingAllTaskDone = false;
-          for (let r of this.resolves)
-            r(true);
+          while (this.resolves.length > 0) {
+            let r = this.resolves.shift();
+            if (r) r(true);
+          }
         }
         this.check();
       });

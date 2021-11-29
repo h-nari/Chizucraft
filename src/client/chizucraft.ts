@@ -78,14 +78,12 @@ export class Chizucraft {
     })
     this.map.on('keydown', e => {
       let ke = e as L.LeafletKeyboardEvent;
-      console.log('key:', ke.originalEvent.key);
       if (ke.originalEvent.key == 'Control') {
         this.markerFixToScreen = true;
       }
     });
     this.map.on('keyup', e => {
       let ke = e as L.LeafletKeyboardEvent;
-      console.log('key:', ke.originalEvent.key);
       if (ke.originalEvent.key == 'Control') {
         let ke = e as L.LeafletKeyboardEvent;
         this.markerFixToScreen = false;
@@ -184,7 +182,6 @@ export class Chizucraft {
   }
 
   tab_set(target: string) {
-    console.log('tab_set:', target);
     $('.tab-bar a.nav-link').removeClass('active');
     $('.tab-bar div.tab').removeClass('hidden');
     $('.tab-bar div.tab').addClass('hidden');
@@ -313,7 +310,6 @@ export class Chizucraft {
   }
 
   fileLoad() {
-    console.log('fileLoad');
     let fileElem = document.getElementById('input-file-load');
     if (fileElem)
       fileElem.click();
@@ -321,7 +317,6 @@ export class Chizucraft {
 
   fileSave() {
     let target = document.getElementById('anchor-file-save') as HTMLAnchorElement;
-    console.log('download');
     let content = JSON.stringify(this.stat, null, 2);
     let blob = new Blob([content], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -347,7 +342,6 @@ export class Chizucraft {
       let dy = this.map.distance(oLatLng, nLatLng);
       let x = dx / (ePoint.x - oPoint.x);
       let y = dy / (oPoint.y - nPoint.y);
-      console.log('x:', x, 'y:', y);
       return { x, y };
     } else {
       return { x: 1, y: 1 };
@@ -360,7 +354,6 @@ export class Chizucraft {
       children: [{
         name: '設定をロード',
         action: (e, menu) => {
-          console.log('menu file load');
           this.fileLoad();
         }
       }, {
