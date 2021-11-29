@@ -8,7 +8,7 @@ export class TaskQueue {
   private queue: { func: TaskFunc, ctrl: TaskControl | undefined }[] = [];
   private running: { [id: number]: TaskControl | undefined } = {};
   private task_id: number = 0;
-  private task_max = 1;
+  private task_max = 4;
   private waitingAllTaskDone = false;
   private resolves: ((value: unknown) => void)[] = [];
 
