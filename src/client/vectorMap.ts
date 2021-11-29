@@ -98,9 +98,10 @@ export class VectorMap {
     this.update_canvas_size();
   }
 
-  setParam(param: ProjectionParameter) {
+  setParam(param: ProjectionParameter | undefined) {
     this.param = param;
-    this.zoom = param.zoom;
+    if (param)
+      this.zoom = param.zoom;
   }
 
   html(): string {

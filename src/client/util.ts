@@ -83,3 +83,33 @@ export function deepAssign(target: { [key: string]: any }, src: { [key: string]:
     }
   }
 }
+
+interface ConfirmOption {
+  title?: string;
+  content: string;
+  columnClass?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge';
+  type?: 'blue' | 'green' | 'red' | 'orange' | 'purple' | 'dark';
+  yes?: string;
+  no?: string;
+};
+
+export function jconfirm(opt: ConfirmOption | string) {
+  return new Promise((resolve, reject) => {
+    if (typeof (opt) == 'string') opt = { content: opt };
+    $.confirm({
+      title: opt.title || 'Confirm',
+      content: opt.content,
+      type: opt.type || 'default',
+      buttons: {
+        yes: {
+          text: opt.yes || 'Yes',
+          action: () => { resolve(true); }
+        },
+        No: {
+          text: opt.no || 'No',
+          action: () => { resolve(false); }
+        }
+      }
+    });
+  })
+}

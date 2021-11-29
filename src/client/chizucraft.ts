@@ -4,7 +4,7 @@ import { a, button, div, input, label, option, select, selected } from './tag';
 import { range, row } from './template';
 import { Menu } from './menu';
 import { MapName, VectorMap } from './vectorMap';
-import { deepAssign } from './util';
+import { deepAssign, jconfirm } from './util';
 
 let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>";
 
@@ -159,21 +159,28 @@ export class Chizucraft {
     if (stat_json) {
       let stat = JSON.parse(stat_json);
       deepAssign(this.stat, stat);
-      if (this.stat.origin) {
-        let oLatLng = L.latLng(this.stat.origin);
-        let param: ProjectionParameter = {
-          zoom: this.stat.zoom,
-          oPoint: this.map.project(oLatLng, this.stat.zoom),
-          blocksize: stat.blocksize,
-          mPerPoint: this.getMPerPoint()
-        };
-        this.vectorMap.setParam(param);
+      this.setVectorParam();
+      if (this.stat.origin)
         this.vectorMap.setMap(this.stat.disp.mapName);
-      }
       if (this.stat.tab)
         this.tab_set(this.stat.tab);
     }
     this.setTitle();
+  }
+
+  private setVectorParam() {
+    if (this.stat.origin) {
+      let oLatLng = L.latLng(this.stat.origin);
+      let param: ProjectionParameter = {
+        zoom: this.stat.zoom,
+        oPoint: this.map.project(oLatLng, this.stat.zoom),
+        blocksize: this.stat.blocksize,
+        mPerPoint: this.getMPerPoint()
+      };
+      this.vectorMap.setParam(param);
+    } else {
+      this.vectorMap.setParam(undefined);
+    }
   }
 
   tab_set(target: string) {
@@ -201,13 +208,21 @@ export class Chizucraft {
         let json = await file.text();
         let stat = JSON.parse(json) as cc_stat;
         deepAssign(this.stat, stat);
-        this.stat.filename ||= file.name;
+        this.stat.filename = file.name;
         this.saveStat();
-        // $('#controller').html(this.html());
-        // this.bind();
         this.dispCurrentMapState();
-        if (this.stat.marker.disp)
+        this.setVectorParam();
+        stat = this.stat;
+        if (stat.origin)
+          this.map.panTo(L.latLng(stat.origin));
+        if (stat.marker.disp)
           this.drawMarker();
+        else
+          this.removeMarker();
+        if (stat.origin_disp)
+          this.drawOrigin();
+        else
+          this.removeOrigins();
         this.setTitle();
       }
     });
@@ -242,37 +257,31 @@ export class Chizucraft {
     this.removeMarker();
     let map = this.map;
     let cLatlng: L.LatLng;
-    if (!this.stat.marker.latlng) {
-      let cPoint = map.getPixelBounds().getCenter();
-      let zoom = map.getZoom();
-      cLatlng = map.unproject(cPoint, zoom);
-      this.stat.marker.latlng = [cLatlng.lat, cLatlng.lng];
-      this.saveStat();
-    } else {
+    if (this.stat.marker.latlng) {
       cLatlng = L.latLng(this.stat.marker.latlng);
-    }
 
-    let marker_opt = { color: 'blue', weight: 1 };
-    let nLatLng1 = L.latLng(cLatlng.lat + 1, cLatlng.lng);
-    let wLatLng1 = L.latLng(cLatlng.lat, cLatlng.lng - 1);
-    let latpm = 1 / map.distance(cLatlng, nLatLng1);
-    let lngpm = 1 / map.distance(cLatlng, wLatLng1);
-    let m = this.stat.marker;
-    let w = m.grid_size / 2;
-    let h = m.grid_size / 2;
-    let nwLatlng = L.latLng(cLatlng.lat + latpm * h, cLatlng.lng - lngpm * w);
-    let seLatlng = L.latLng(cLatlng.lat - latpm * h, cLatlng.lng + lngpm * w);
-    let bounds = L.latLngBounds(nwLatlng, seLatlng);
-    let marker = L.rectangle(bounds, marker_opt);
-    this.markers.push(marker.addTo(map));
-    this.markers.push(L.polyline([
-      [cLatlng.lat + latpm * h, cLatlng.lng],
-      [cLatlng.lat - latpm * h, cLatlng.lng]],
-      marker_opt).addTo(map));
-    this.markers.push(L.polyline([
-      [cLatlng.lat, cLatlng.lng - lngpm * w],
-      [cLatlng.lat, cLatlng.lng + lngpm * w]],
-      marker_opt).addTo(map));
+      let marker_opt = { color: 'blue', weight: 1 };
+      let nLatLng1 = L.latLng(cLatlng.lat + 1, cLatlng.lng);
+      let wLatLng1 = L.latLng(cLatlng.lat, cLatlng.lng - 1);
+      let latpm = 1 / map.distance(cLatlng, nLatLng1);
+      let lngpm = 1 / map.distance(cLatlng, wLatLng1);
+      let m = this.stat.marker;
+      let w = m.grid_size / 2;
+      let h = m.grid_size / 2;
+      let nwLatlng = L.latLng(cLatlng.lat + latpm * h, cLatlng.lng - lngpm * w);
+      let seLatlng = L.latLng(cLatlng.lat - latpm * h, cLatlng.lng + lngpm * w);
+      let bounds = L.latLngBounds(nwLatlng, seLatlng);
+      let marker = L.rectangle(bounds, marker_opt);
+      this.markers.push(marker.addTo(map));
+      this.markers.push(L.polyline([
+        [cLatlng.lat + latpm * h, cLatlng.lng],
+        [cLatlng.lat - latpm * h, cLatlng.lng]],
+        marker_opt).addTo(map));
+      this.markers.push(L.polyline([
+        [cLatlng.lat, cLatlng.lng - lngpm * w],
+        [cLatlng.lat, cLatlng.lng + lngpm * w]],
+        marker_opt).addTo(map));
+    }
   }
 
   removeMarker() {
@@ -353,14 +362,15 @@ export class Chizucraft {
         action: (e, menu) => {
           console.log('menu file load');
           this.fileLoad();
-        }, {
+        }
+      }, {
         name: '設定をセーブ',
         action: (e, menu) => { this.fileSave(); }
       }]
     }));
 
 
-    let originMenu = new Menu({
+    this.menus.push(new Menu({
       name: '基準点',
       children: [
         {
@@ -375,17 +385,55 @@ export class Chizucraft {
             else this.removeOrigins();
             this.saveStat();
           }
-        },
-        {
+        }, {
+          name: '基準点に移動',
+          action: (e, menu) => {
+            if (this.stat.origin) {
+              this.map.panTo(L.latLng(this.stat.origin));
+            } else {
+              $.alert('基準点が設定されていません');
+            }
+          }
+        }, {
           name: '基準点をクリア',
           action: (e, menu) => {
-            this.stat.origin = undefined;
-            this.removeOrigins();
-            this.saveStat();
+            $.confirm({
+              title: '基準点のクリア',
+              columnClass: 'medium',
+              content: div(
+                div('基準点をクリアすると影響が大きいです。'),
+                div('本当にクリアしますか？')),
+              buttons: {
+                ok: {
+                  text: 'クリアする',
+                  action: () => {
+                    this.stat.origin = undefined;
+                    this.removeOrigins();
+                    this.saveStat();
+                    this.setVectorParam();
+                  }
+                },
+                cancel: {
+                  text: 'キャンセル'
+                }
+              }
+            });
           }
         },
         {
-          name: '基準点をマーカーの位置に設定'
+          name: '基準点をマーカーの位置に設定',
+          action: async (e, menu) => {
+            let m = this.stat.marker;
+            if (m.latlng) {
+              if (this.stat.origin && !jconfirm('既に基準点は設定されていますが、本当に変更しますか？')) return;
+              this.stat.origin = m.latlng;
+              this.stat.origin_disp = true;
+              this.drawOrigin();
+              this.setVectorParam();
+            } else {
+              $.alert('マーカーが設定されていません');
+            }
+          }
         },
         { separator: true },
         {
@@ -410,6 +458,21 @@ export class Chizucraft {
               $.alert('マーカーが設定されていません');
             }
           }
+        }, {
+          name: 'マーカーをクリア',
+          action: (e, menu) => {
+            this.stat.marker.latlng = undefined;
+            this.removeMarker();
+            this.saveStat();
+          }
+        }, {
+          name: '画面中央にマーカーを配置',
+          action: (e, menu) => {
+            let c = this.map.getCenter();
+            this.stat.marker.latlng = [c.lat, c.lng];
+            this.drawMarker();
+            this.saveStat();
+          }
         },
         {
           name: 'マーカーを画面に固定',
@@ -428,6 +491,7 @@ export class Chizucraft {
             for (let s of [128, 256, 512, 1024, 2048]) {
               menu.add({
                 name: `${s} x ${s}ブロック`,
+                with_check: true,
                 checked: s == this.stat.marker.grid_size,
                 action: (e, menu) => {
                   this.stat.marker.grid_size = s;
@@ -441,8 +505,7 @@ export class Chizucraft {
           }
         }
       ]
-    })
-    this.menus.push(originMenu);
+    }));
     this.menus.push(helpMenu());
   }
 };
