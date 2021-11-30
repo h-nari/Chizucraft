@@ -141,10 +141,10 @@ export class VectorMap {
       }
       e.preventDefault();
     }).on('mouseup', e => {
-      if (this.ct.pan(e.clientX - x0, e.clientY - y0)) 
+      if (this.ct.pan(e.clientX - x0, e.clientY - y0))
         this.draw();
-        this.cc.saveView();
-        pressed = false;
+      this.cc.saveView();
+      pressed = false;
       e.preventDefault();
     }).on('click', e => {
       if (!moved) {
@@ -454,6 +454,22 @@ export class VectorMap {
     throw new Error(`mapName:${mapName} not defined`);
   }
 
+  openGoogleMap() {
+    if (!this.param) return;
+    let sx = this.canvas.width / 2;
+    let sy = this.canvas.height / 2;
+    let bx = this.ct.fromX(sx);
+    let by = this.ct.fromY(sy);
+    let tb = new TileBlockTranformation(this.param, this.zoom);
+    let tx = tb.toTx(bx);
+    let ty = tb.toTy(by);
+    let latlng = this.cc.map.unproject([tx, ty], this.zoom);
+    console.log('latlng:', latlng);
+    let url = 'https://www.google.com/maps/@?api=1&map_action=map&';
+    url += `center=${latlng.lat},${latlng.lng}&zoom=${this.zoom}`;
+    window.open(url, '_blank');
+  };
+
   makeMenu() {
     this.menus.push(new Menu({
       name: '表示',
@@ -574,6 +590,11 @@ export class VectorMap {
             }
           });
         }
+        menu.addSeparator();
+        menu.add({
+          name: 'GoogleMapを開く',
+          action: (e, menu) => { this.openGoogleMap(); }
+        })
         menu.expand(e);
       }
     }));
