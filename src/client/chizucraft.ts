@@ -25,6 +25,7 @@ interface cc_stat {
     mapName: MapName;
     grid: boolean;
   }
+  vector_zoom_max: number;
 };
 
 export class Chizucraft {
@@ -51,7 +52,8 @@ export class Chizucraft {
       zoom: 15,
       marker: { disp: false, grid_size: 2048 },
       minecraft_offset: { x: 0, y: 64, z: 0 },
-      disp: { mapName: 'gsi_vector', grid: true }
+      disp: { mapName: 'gsi_vector', grid: true },
+      vector_zoom_max: 16
     };
     L.tileLayer(this.url_template, this.tile_attr).addTo(this.map);
     L.control.scale().addTo(this.map);
@@ -144,7 +146,7 @@ export class Chizucraft {
     if (view_json) {
       let v = JSON.parse(view_json);
       this.map.setView(v.center, v.zoom);
-      if (v.ct) 
+      if (v.ct)
         this.vectorMap.ct.load(v.ct);
     } else {
       this.map.setView([38.16911, 138.88], 5);

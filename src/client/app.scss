@@ -8,4 +8,8 @@ body {
 .hidden {
   display: none;
 }
- 
+
+.center {
+  display: flex;
+  justify-content: center;
+}

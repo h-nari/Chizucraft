@@ -3,7 +3,7 @@ import { CoordinateTransformation } from "./ct";
 import { VectorTileRenderer } from "./vectorTileRenderer";
 import { Menu } from "./menu";
 import { TileBlockTranformation } from "./t2b";
-import { div, tag } from "./tag";
+import { div, label, option, select, selected, tag } from "./tag";
 import { TaskControl, TaskQueue } from "./taskQueue";
 import { ProjectionParameter } from "./tileMaker";
 import { jconfirm, j_alert, round } from "./util";
@@ -220,7 +220,7 @@ export class VectorMap {
 
   zoom_update() {
     if (!this.param) return;
-    let zoom_max = this.mapSource.zoomMax;
+    let zoom_max = Math.min(this.mapSource.zoomMax, this.cc.stat.vector_zoom_max);
     let zoom_min = this.mapSource.zoomMin;
     let tile_max = this.mapSource.tileMax;
     if (this.zoom > zoom_max) this.zoom = zoom_max;
@@ -470,6 +470,31 @@ export class VectorMap {
     window.open(url, '_blank');
   };
 
+  dlg_max_zoom() {
+    let max = this.cc.stat.vector_zoom_max;
+    $.confirm({
+      title: 'ベクトルマップの最大Zoom設定',
+      type: 'green',
+      columnClass: 'medium',
+      content: div({ class: 'dlg-max-zoom center' },
+        label({ class: 'mx-2' }, '最大Zoomレベル:'),
+        select(
+          option({ selected: selected(max == 16) }, 16),
+          option({ selected: selected(max == 17) }, 17)
+        )
+      ),
+      buttons: {
+        '設定': () => {
+          let max = Number($('.dlg-max-zoom select').val());
+          this.cc.stat.vector_zoom_max = max;
+          this.cc.saveStat();
+          this.draw();
+        },
+        'キャンセル': () => { }
+      }
+    });
+  };
+
   makeMenu() {
     this.menus.push(new Menu({
       name: '表示',
@@ -570,6 +595,9 @@ export class VectorMap {
             });
           }
         }
+      }, {
+        name: 'ベクターマップの最大zoom設定',
+        action: (e, menu) => { this.dlg_max_zoom(); }
       }]
     }));
 
