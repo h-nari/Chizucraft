@@ -77,6 +77,8 @@ export function deepAssign(target: { [key: string]: any }, src: { [key: string]:
       target[key] = value;
     } else if (Array.isArray(value)) {
       target[key] = (value as any[]).concat();
+    } else if (value === undefined || value === null) {
+      target[key] = value;
     } else {
       target[key] = {};
       deepAssign(target[key], value);
@@ -91,6 +93,7 @@ interface ConfirmOption {
   type?: 'blue' | 'green' | 'red' | 'orange' | 'purple' | 'dark';
   yes?: string;
   no?: string;
+  ok?: string;
 };
 
 export function jconfirm(opt: ConfirmOption | string) {
@@ -108,6 +111,23 @@ export function jconfirm(opt: ConfirmOption | string) {
         No: {
           text: opt.no || 'No',
           action: () => { resolve(false); }
+        }
+      }
+    });
+  })
+}
+
+export function j_alert(opt: ConfirmOption | string) {
+  return new Promise((resolve, reject) => {
+    if (typeof (opt) == 'string') opt = { content: opt };
+    $.confirm({
+      title: opt.title || 'Error',
+      content: opt.content,
+      type: opt.type || 'red',
+      buttons: {
+        ok: {
+          text: opt.ok || 'OK',
+          action: () => { resolve(true); }
         }
       }
     });

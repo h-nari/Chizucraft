@@ -22,3 +22,8 @@ export function range(start: number, end: number): number[] {
   }
   return r;
 }
+
+export function label_num(label_str: string, num: number | undefined = undefined) {
+  return div({ class: 'label-num ' + label_str },
+    label(label_str), input({ type: 'number', value: num || '' }));
+}

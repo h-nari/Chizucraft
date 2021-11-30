@@ -10,9 +10,26 @@ div.vector-map {
   border: 1px solid green;
 }
 
-
 .topbar .status {
   border: 1px solid black;
   padding: 4px;
   background-color: #eee;
+}
+
+.minecraft-offset-dlg > div {
+  margin: 5px;
+  display: flex;
+  justify-content: center;
+
+  .label-num {
+    display: inline-block;
+    label {
+      width: 20px;
+      margin: 5px;
+      text-align: right;
+    }
+    input {
+      width: 70px;
+    }
+  }
 }

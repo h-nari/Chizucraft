@@ -6,8 +6,9 @@ import { TileBlockTranformation } from "./t2b";
 import { div, tag } from "./tag";
 import { TaskControl, TaskQueue } from "./taskQueue";
 import { ProjectionParameter } from "./tileMaker";
-import { round } from "./util";
+import { jconfirm, j_alert, round } from "./util";
 import { VectorTile } from "./vectorTile";
+import { label_num } from "./template";
 
 
 export type MapName = 'gsi_std' | 'gsi_vector' | 'gsi_photo' | 'openStreet';
@@ -471,6 +472,43 @@ export class VectorMap {
         action: (e, menu) => {
           this.ct.moveTo(0, 0, this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
           this.draw();
+        }
+      }, {
+        name: 'マインクラフトの座標設定',
+        action: (e, menu) => {
+          let sel = this.selected;
+          if (!sel) {
+            j_alert('ブロックが選択されていません');
+          } else {
+            let off = this.cc.stat.minecraft_offset;
+            $.confirm({
+              title: 'マインクラフトの座標設定',
+              columnClass: 'medium',
+              type: 'green',
+              content: div({ class: 'minecraft-offset-dlg' },
+                div('現在選択されたブロックの座標'),
+                div(
+                  label_num('x', sel.bx + off.x),
+                  label_num('y', off.y),
+                  label_num('z', sel.by + off.z))
+              ),
+              buttons: {
+                '設定': () => {
+                  if (sel) {
+                    let x = Number($('.minecraft-offset-dlg .x input').val());
+                    let y = Number($('.minecraft-offset-dlg .y input').val());
+                    let z = Number($('.minecraft-offset-dlg .z input').val());
+                    off.x = x - sel.bx;
+                    off.y = y;
+                    off.z = z - sel.by;
+                    this.cc.saveStat();
+                    this.draw();
+                  }
+                },
+                'キャンセル': () => { }
+              }
+            });
+          }
         }
       }]
     }));
