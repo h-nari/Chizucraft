@@ -21,15 +21,16 @@ div.vector-map {
   display: flex;
   justify-content: center;
 
-  .label-num {
-    display: inline-block;
-    label {
-      width: 20px;
-      margin: 5px;
-      text-align: right;
-    }
-    input {
-      width: 70px;
-    }
+}
+
+.label-num {
+  display: inline-block;
+  label {
+    width: 20px;
+    margin: 5px;
+    text-align: right;
+  }
+  input {
+    width: 70px;
   }
 }

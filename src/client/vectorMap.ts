@@ -471,7 +471,50 @@ export class VectorMap {
         name: '基準点に移動',
         action: (e, menu) => {
           this.ct.moveTo(0, 0, this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
+          this.selected = { bx: 0, by: 0 };
           this.draw();
+        }
+      }, {
+        name: '選択されたブロックに移動',
+        action: (e, menu) => {
+          if (this.selected) {
+            this.ct.moveTo(this.selected.bx, this.selected.by,
+              this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
+            this.draw();
+          } else {
+            j_alert('ブロックが選択されていません');
+          }
+        }
+      }, {
+        name: 'マインクラフトの座標に移動',
+        action: (e, menu) => {
+          let { x, z } = this.cc.stat.minecraft_offset;
+          if (this.selected) {
+            x += this.selected.bx;
+            z += this.selected.by;
+          }
+          $.confirm({
+            title: 'マインクラフトの座標に移動',
+            type: 'green',
+            content: div({ class: 'minecraft-goto-dlg' },
+              div('移動先の座標'),
+              div(label_num('x', x), label_num('z', z))
+            ),
+            buttons: {
+              '移動': () => {
+                let tx = Number($('.minecraft-goto-dlg .x input').val());
+                let tz = Number($('.minecraft-goto-dlg .z input').val());
+                this.selected = {
+                  bx: tx - this.cc.stat.minecraft_offset.x,
+                  by: tz - this.cc.stat.minecraft_offset.z
+                };
+                this.ct.moveTo(this.selected.bx, this.selected.by,
+                  this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
+                this.draw();
+              },
+              'キャンセル': () => { }
+            }
+          });
         }
       }, {
         name: 'マインクラフトの座標設定',
