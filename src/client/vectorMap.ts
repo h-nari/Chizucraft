@@ -6,7 +6,7 @@ import { TileBlockTranformation } from "./t2b";
 import { div, label, option, select, selected, tag } from "./tag";
 import { TaskControl, TaskQueue } from "./taskQueue";
 import { ProjectionParameter } from "./tileMaker";
-import { jconfirm, j_alert, round } from "./util";
+import { j_alert, round } from "./util";
 import { VectorTile } from "./vectorTile";
 import { label_num } from "./template";
 
@@ -72,7 +72,7 @@ const grids = [
   [4, '#ffc0c0'],
   [16, 'green'],
   [128, 'blue'],
-  [128 * 16, 'black']
+  [128 * 16, 'orange']
 ] as [number, string][]
 
 export class VectorMap {

@@ -97,7 +97,8 @@ export class VectorTileRenderer {
         this.features = this.currentLayer.features.concat();
       } else if (this.drawFuncs.length > 0) {
         this.currentDrawFunc = this.drawFuncs.shift() as DrawFunc;
-        this.layers = Object.values(this.vm.layers);
+        const weight: { [key: string]: number } = { 'building': 10, 'road': 20 };
+        this.layers = Object.values(this.vm.layers).sort((a, b) => (weight[a.name] || 0) - (weight[b.name] || 0));
         this.features = [];
       } else {
         return this.resolve('done');
@@ -107,6 +108,7 @@ export class VectorTileRenderer {
   }
 
   drawFeatureWithBlocks(feature: VectorFeature) {
+    if (this.currentLayer?.name == 'road' && feature.attr('rnkWidth')) return;
     if (this.ct.ax >= 4) {
       let name = this.currentLayer?.name;
       let colors: { [name: string]: string } = { road: 'gray', building: 'red', river: 'blue' };
