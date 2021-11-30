@@ -141,10 +141,10 @@ export class VectorMap {
       }
       e.preventDefault();
     }).on('mouseup', e => {
-      if (this.ct.pan(e.clientX - x0, e.clientY - y0)) {
+      if (this.ct.pan(e.clientX - x0, e.clientY - y0)) 
         this.draw();
-      }
-      pressed = false;
+        this.cc.saveView();
+        pressed = false;
       e.preventDefault();
     }).on('click', e => {
       if (!moved) {
@@ -158,6 +158,7 @@ export class VectorMap {
       let oe = e.originalEvent as WheelEvent;
       if (oe.deltaY > 0) this.zoomView(0.5, e);
       else if (oe.deltaY < 0) this.zoomView(2, e);
+      this.cc.saveView();
       e.preventDefault();
       e.stopPropagation();
     });

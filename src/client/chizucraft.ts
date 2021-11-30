@@ -135,7 +135,8 @@ export class Chizucraft {
   saveView() {
     let center = this.map.getCenter();
     let zoom = this.map.getZoom();
-    localStorage.setItem('chizucraft_view', JSON.stringify({ center, zoom }));
+    let ct = this.vectorMap.ct.save();
+    localStorage.setItem('chizucraft_view', JSON.stringify({ center, zoom, ct }));
   }
 
   loadView() {
@@ -143,6 +144,8 @@ export class Chizucraft {
     if (view_json) {
       let v = JSON.parse(view_json);
       this.map.setView(v.center, v.zoom);
+      if (v.ct) 
+        this.vectorMap.ct.load(v.ct);
     } else {
       this.map.setView([38.16911, 138.88], 5);
     }

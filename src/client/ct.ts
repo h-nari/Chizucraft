@@ -1,5 +1,7 @@
 // ブロック座標 → 画面座標変換
 
+import { th } from "./tag";
+
 export class CoordinateTransformation {
   public ax: number = 1.0;
   public bx: number = 0.0;
@@ -33,5 +35,16 @@ export class CoordinateTransformation {
     this.bx = sx - x * scale;
     this.by = sy - y * scale;
     this.ax = this.ay = scale;
+  }
+
+  save() {
+    return { ax: this.ax, bx: this.bx, ay: this.ay, by: this.by };
+  }
+
+  load(v: { ax: number, bx: number, ay: number, by: number }) {
+    this.ax = v.ax;
+    this.bx = v.bx;
+    this.ay = v.ay;
+    this.by = v.by;
   }
 }
