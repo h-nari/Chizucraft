@@ -499,19 +499,8 @@ export class VectorMap {
 
   makeMenu() {
     this.menus.push(new Menu({
-      name: '表示',
+      name: '移動',
       children: [{
-        name: 'グリッド表示',
-        with_check: true,
-        onBeforeExpand: menu => {
-          menu.opt.checked = this.cc.stat.disp.grid;
-        },
-        action: (e, menu) => {
-          this.cc.stat.disp.grid = menu.opt.checked = !menu.opt.checked;
-          this.cc.saveStat();
-          this.draw();
-        }
-      }, {
         name: '基準点に移動',
         action: (e, menu) => {
           this.ct.moveTo(0, 0, this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
@@ -520,6 +509,7 @@ export class VectorMap {
         }
       }, {
         name: '選択されたブロックに移動',
+        onBeforeExpand: menu => { menu.opt.disable = this.selected === undefined; },
         action: (e, menu) => {
           if (this.selected) {
             this.ct.moveTo(this.selected.bx, this.selected.by,
@@ -560,6 +550,8 @@ export class VectorMap {
             }
           });
         }
+      }, {
+        separator: true
       }, {
         name: 'マインクラフトの座標設定',
         action: (e, menu) => {
@@ -604,9 +596,23 @@ export class VectorMap {
     }));
 
     this.menus.push(new Menu({
-      name: '地図タイプ',
+      name: '表示',
       action: (e, menu) => {
         menu.clear();
+        menu.add({
+          name: 'グリッド表示',
+          with_check: true,
+          onBeforeExpand: menu => {
+            menu.opt.checked = this.cc.stat.disp.grid;
+          },
+          action: (e, menu) => {
+            this.cc.stat.disp.grid = menu.opt.checked = !menu.opt.checked;
+            this.cc.saveStat();
+            this.draw();
+          }
+        });
+        menu.addSeparator();
+
         for (let ms of mapSorces) {
           menu.add({
             name: ms.dispName,

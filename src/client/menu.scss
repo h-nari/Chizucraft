@@ -15,6 +15,17 @@
       color: white;
       width: 100%;
       white-space: nowrap;
+      .name {
+        display: inline-block;
+        margin: 0px 10px;
+      }
+      .with-check {
+        display: inline-block;
+        width: 24px;
+      }
+    }
+    button.menu.disable {
+      color: darkgray;
     }
     div.menu.separator {
       border-bottom: solid 1px #888;
@@ -25,13 +36,4 @@
   }
 }
 
-button.menu {
-  .name {
-    display: inline-block;
-    margin: 0px 10px;
-  }
-  .with-check {
-    display: inline-block;
-    width: 24px;
-  }
-}
+

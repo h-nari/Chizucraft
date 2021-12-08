@@ -22,6 +22,7 @@ export interface MenuOption {
   class?: string;
   children?: MenuOption[];
   onBeforeExpand?: (menu: Menu) => void;
+  disable?: boolean;
 };
 
 export class Menu {
@@ -58,6 +59,7 @@ export class Menu {
     else {
       let c = 'menu btn';
       if (this.opt.class) c += ' ' + this.opt.class;
+      if (this.opt.disable) c += ' disable';
       return button({ class: c, id: this.id, 'title-i18n': this.opt.explain }, this.innerHtml());
     }
   }
@@ -70,7 +72,8 @@ export class Menu {
         document.location.href = this.opt.link;
       }
       else if (this.opt.action) {
-        this.opt.action(e, this);
+        if (!this.opt.disable)
+          this.opt.action(e, this);
       } else if (this.subMenu.length > 0) {
         this.expand(e);
       }

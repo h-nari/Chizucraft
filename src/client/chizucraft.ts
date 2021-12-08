@@ -376,6 +376,7 @@ export class Chizucraft {
           with_check: true,
           onBeforeExpand: menu => {
             menu.opt.checked = this.stat.marker.disp;
+            menu.opt.disable = this.stat.marker.latlng === undefined;
           },
           action: (e, menu) => {
             let v = this.stat.marker.disp = !this.stat.marker.disp;
@@ -386,6 +387,7 @@ export class Chizucraft {
         },
         {
           name: 'マーカーの位置に移動',
+          onBeforeExpand: menu => { menu.opt.disable = this.stat.marker.latlng === undefined; },
           action: (e, menu) => {
             if (this.stat.marker.latlng) {
               this.map.panTo(L.latLng(this.stat.marker.latlng));
@@ -395,6 +397,7 @@ export class Chizucraft {
           }
         }, {
           name: 'マーカーをクリア',
+          onBeforeExpand: menu => { menu.opt.disable = this.stat.marker.latlng === undefined; },
           action: (e, menu) => {
             this.stat.marker.latlng = undefined;
             this.removeMarker();
@@ -414,6 +417,7 @@ export class Chizucraft {
           with_check: true,
           onBeforeExpand: menu => {
             menu.opt.checked = this.markerFixToScreen;
+            menu.opt.disable = this.stat.marker.latlng === undefined;
           },
           action: (e, menu) => {
             this.markerFixToScreen = !this.markerFixToScreen;
@@ -451,6 +455,7 @@ export class Chizucraft {
           with_check: true,
           onBeforeExpand: menu => {
             menu.opt.checked = this.stat.origin_disp;
+            menu.opt.disable = this.stat.origin === undefined;
           },
           action: (e, menu) => {
             let v = this.stat.origin_disp = !this.stat.origin_disp;
@@ -460,6 +465,7 @@ export class Chizucraft {
           }
         }, {
           name: '基準点に移動',
+          onBeforeExpand: menu => { menu.opt.disable = this.stat.origin === undefined; },
           action: (e, menu) => {
             if (this.stat.origin) {
               this.map.panTo(L.latLng(this.stat.origin));
@@ -469,6 +475,7 @@ export class Chizucraft {
           }
         }, {
           name: '基準点をクリア',
+          onBeforeExpand: menu => { menu.opt.disable = this.stat.origin === undefined; },
           action: (e, menu) => {
             $.confirm({
               title: '基準点のクリア',
@@ -503,6 +510,7 @@ export class Chizucraft {
         },
         {
           name: '基準点をマーカーの位置に設定',
+          onBeforeExpand: menu => { menu.opt.disable = this.stat.marker.latlng === undefined; },
           action: async (e, menu) => {
             let m = this.stat.marker;
             if (m.latlng) {
@@ -527,7 +535,8 @@ export function helpMenu() {
     name: 'ヘルプ',
     children: [
       {
-        name: 'このプログラムについて'
+        name: 'このプログラムについて',
+        disable: true,
       },
       {
         name: '使い方'
