@@ -220,7 +220,9 @@ export class VectorMap {
 
   zoom_update() {
     if (!this.param) return;
-    let zoom_max = Math.min(this.mapSource.zoomMax, this.cc.stat.vector_zoom_max);
+    let zoom_max = this.mapSource.zoomMax;
+    if (this.mapSource.name == 'gsi_vector')
+      zoom_max = Math.min(this.mapSource.zoomMax, this.cc.stat.vector_zoom_max);
     let zoom_min = this.mapSource.zoomMin;
     let tile_max = this.mapSource.tileMax;
     if (this.zoom > zoom_max) this.zoom = zoom_max;
