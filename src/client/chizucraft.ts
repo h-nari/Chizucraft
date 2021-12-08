@@ -369,71 +369,8 @@ export class Chizucraft {
 
 
     this.menus.push(new Menu({
-      name: '基準点',
+      name: 'マーカー',
       children: [
-        {
-          name: '基準点を表示',
-          with_check: true,
-          onBeforeExpand: menu => {
-            menu.opt.checked = this.stat.origin_disp;
-          },
-          action: (e, menu) => {
-            let v = this.stat.origin_disp = !this.stat.origin_disp;
-            if (v) this.drawOrigin();
-            else this.removeOrigins();
-            this.saveStat();
-          }
-        }, {
-          name: '基準点に移動',
-          action: (e, menu) => {
-            if (this.stat.origin) {
-              this.map.panTo(L.latLng(this.stat.origin));
-            } else {
-              $.alert('基準点が設定されていません');
-            }
-          }
-        }, {
-          name: '基準点をクリア',
-          action: (e, menu) => {
-            $.confirm({
-              title: '基準点のクリア',
-              columnClass: 'medium',
-              content: div(
-                div('基準点をクリアすると影響が大きいです。'),
-                div('本当にクリアしますか？')),
-              buttons: {
-                ok: {
-                  text: 'クリアする',
-                  action: () => {
-                    this.stat.origin = undefined;
-                    this.removeOrigins();
-                    this.saveStat();
-                    this.setVectorParam();
-                  }
-                },
-                cancel: {
-                  text: 'キャンセル'
-                }
-              }
-            });
-          }
-        },
-        {
-          name: '基準点をマーカーの位置に設定',
-          action: async (e, menu) => {
-            let m = this.stat.marker;
-            if (m.latlng) {
-              if (this.stat.origin && !jconfirm('既に基準点は設定されていますが、本当に変更しますか？')) return;
-              this.stat.origin = m.latlng;
-              this.stat.origin_disp = true;
-              this.drawOrigin();
-              this.setVectorParam();
-            } else {
-              $.alert('マーカーが設定されていません');
-            }
-          }
-        },
-        { separator: true },
         {
           name: 'マーカー表示',
           with_check: true,
@@ -504,6 +441,83 @@ export class Chizucraft {
         }
       ]
     }));
+
+
+    this.menus.push(new Menu({
+      name: '基準点',
+      children: [
+        {
+          name: '基準点を表示',
+          with_check: true,
+          onBeforeExpand: menu => {
+            menu.opt.checked = this.stat.origin_disp;
+          },
+          action: (e, menu) => {
+            let v = this.stat.origin_disp = !this.stat.origin_disp;
+            if (v) this.drawOrigin();
+            else this.removeOrigins();
+            this.saveStat();
+          }
+        }, {
+          name: '基準点に移動',
+          action: (e, menu) => {
+            if (this.stat.origin) {
+              this.map.panTo(L.latLng(this.stat.origin));
+            } else {
+              $.alert('基準点が設定されていません');
+            }
+          }
+        }, {
+          name: '基準点をクリア',
+          action: (e, menu) => {
+            $.confirm({
+              title: '基準点のクリア',
+              columnClass: 'medium',
+              content: div(
+                div('基準点をクリアすると影響が大きいです。'),
+                div('基準点の情報をファイル/設定をセーブで保存できます。'),
+                div('本当にクリアしますか？')),
+              buttons: {
+                ok: {
+                  text: 'クリアする',
+                  action: () => {
+                    this.stat.origin = undefined;
+                    this.removeOrigins();
+                    this.saveStat();
+                    this.setVectorParam();
+                    this.dispCurrentMapState();
+                  }
+                },
+                save: {
+                  text: '保存する',
+                  action: () => {
+                    this.fileSave();
+                  }
+                },
+                cancel: {
+                  text: 'キャンセル'
+                }
+              }
+            });
+          }
+        },
+        {
+          name: '基準点をマーカーの位置に設定',
+          action: async (e, menu) => {
+            let m = this.stat.marker;
+            if (m.latlng) {
+              if (this.stat.origin && !jconfirm('既に基準点は設定されていますが、本当に変更しますか？')) return;
+              this.stat.origin = m.latlng;
+              this.stat.origin_disp = true;
+              this.drawOrigin();
+              this.setVectorParam();
+            } else {
+              $.alert('マーカーが設定されていません');
+            }
+          }
+        }]
+    }));
+
     this.menus.push(helpMenu());
   }
 };
