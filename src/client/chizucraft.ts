@@ -28,6 +28,21 @@ interface cc_stat {
   vector_zoom_max: number;
 };
 
+let init_stat: cc_stat =
+{
+  origin_disp: false,
+  blocksize: 1,
+  zoom: 15,
+  marker: { disp: false, grid_size: 2048 },
+  minecraft_offset: { x: 0, y: 64, z: 0 },
+  disp: { mapName: 'gsi_vector', grid: true },
+  vector_zoom_max: 16
+};
+
+function duplicated_initial_stat() {
+  return JSON.parse(JSON.stringify(init_stat)) as cc_stat;
+}
+
 export class Chizucraft {
   private url_template = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
   private tile_attr = {
@@ -46,15 +61,7 @@ export class Chizucraft {
   constructor() {
     this.map = L.map('map');
     this.vectorMap = new VectorMap(this, 'pane-vector-map');
-    this.stat = {
-      origin_disp: false,
-      blocksize: 1,
-      zoom: 15,
-      marker: { disp: false, grid_size: 2048 },
-      minecraft_offset: { x: 0, y: 64, z: 0 },
-      disp: { mapName: 'gsi_vector', grid: true },
-      vector_zoom_max: 16
-    };
+    this.stat = duplicated_initial_stat();
     L.tileLayer(this.url_template, this.tile_attr).addTo(this.map);
     L.control.scale().addTo(this.map);
     this.loadView();
@@ -212,23 +219,30 @@ export class Chizucraft {
         deepAssign(this.stat, stat);
         this.stat.filename = file.name;
         this.saveStat();
-        this.dispCurrentMapState();
-        this.setVectorParam();
-        stat = this.stat;
-        if (stat.origin)
-          this.map.panTo(L.latLng(stat.origin));
-        if (stat.marker.disp)
-          this.drawMarker();
-        else
-          this.removeMarker();
-        if (stat.origin_disp)
-          this.drawOrigin();
-        else
-          this.removeOrigins();
-        this.setTitle();
+        this.draw();
+        if (this.stat.origin)
+          this.map.panTo(L.latLng(this.stat.origin));
       }
     });
 
+  }
+
+  draw() {
+    this.dispCurrentMapState();
+    this.setVectorParam();
+    let stat = this.stat;
+    if (stat.marker.disp)
+      this.drawMarker();
+
+    else
+      this.removeMarker();
+    if (stat.origin_disp)
+      this.drawOrigin();
+
+    else
+      this.removeOrigins();
+    this.setTitle();
+    return stat;
   }
 
   setTitle() {
@@ -355,8 +369,26 @@ export class Chizucraft {
 
   private makeMenu() {
     this.menus.push(new Menu({
-      name: 'ファイル',
+      name: '設定',
       children: [{
+        name: '設定をクリア',
+        action: async (e, menu) => {
+          let r = await jconfirm('設定をクリアすると影響が大きいですが、クリア前にセーブしますか？', ['yes', 'no', 'cancel']);
+          console.log('r:', r);
+          if (r == 'cancel') return;
+          else if (r == 'yes') {
+            this.fileSave();
+          } else if (await jconfirm('本当に設定をクリアしますか？') == 'yes') {
+            this.stat = duplicated_initial_stat();
+            this.stat.filename = undefined;
+            this.saveStat();
+            this.setVectorParam();
+            this.draw();
+          }
+        }
+      }, {
+        separator: true
+      }, {
         name: '設定をロード',
         action: (e, menu) => {
           this.fileLoad();
@@ -514,7 +546,7 @@ export class Chizucraft {
           action: async (e, menu) => {
             let m = this.stat.marker;
             if (m.latlng) {
-              if (this.stat.origin && !jconfirm('既に基準点は設定されていますが、本当に変更しますか？')) return;
+              if (this.stat.origin && await jconfirm('既に基準点は設定されていますが、本当に変更しますか？') == 'no') return;
               this.stat.origin = m.latlng;
               this.stat.origin_disp = true;
               this.drawOrigin();
