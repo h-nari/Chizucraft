@@ -30,7 +30,7 @@ interface cc_stat {
 
 let init_stat: cc_stat =
 {
-  origin_disp: false,
+  origin_disp: true,
   blocksize: 1,
   zoom: 15,
   marker: { disp: false, grid_size: 2048 },
@@ -111,6 +111,7 @@ export class Chizucraft {
     if (this.stat.origin_disp)
       this.drawOrigin();
     this.saveStat();
+    this.parseUrl();
   }
 
   html_topbar() {
@@ -364,6 +365,44 @@ export class Chizucraft {
       return { x, y };
     } else {
       return { x: 1, y: 1 };
+    }
+  }
+
+  private parseUrl() {
+    let url = new URL(document.URL);
+    let origin = url.searchParams.get('origin');
+    if (origin) {
+      this.stat = duplicated_initial_stat();
+      this.stat.filename = undefined;
+      console.log('origin:', origin)
+      let m = origin.match(/(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (m) {
+        let lat = parseFloat(m[1]);
+        let lng = parseFloat(m[2]);
+        console.log('lat:', lat, 'lng:', lng);
+        this.stat.origin = [lat, lng];
+
+        let mo = url.searchParams.get('minecraft_offset');
+        if (mo) {
+          console.log('minecraft_offset:', mo);
+          m = mo.match(/(-?\d+),(-?\d+),(-?\d+)/);
+          if (m) {
+            let x = parseInt(m[1]);
+            let y = parseInt(m[2]);
+            let z = parseInt(m[3]);
+            this.stat.minecraft_offset = { x, y, z };
+          } else {
+            console.log('bad format mincraft_offset');
+          }
+        }
+      } else {
+        console.log('bad format origin');
+      }
+      this.saveStat();
+      this.setVectorParam();
+      this.draw();
+      url.search = '';
+      document.location.href = url.toString();
     }
   }
 

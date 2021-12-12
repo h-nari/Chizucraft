@@ -3,12 +3,12 @@ import { CoordinateTransformation } from "./ct";
 import { VectorTileRenderer } from "./vectorTileRenderer";
 import { Menu } from "./menu";
 import { TileBlockTranformation } from "./t2b";
-import { div, label, option, select, selected, tag } from "./tag";
+import { button, div, icon, input, label, option, select, selected, tag } from "./tag";
 import { TaskControl, TaskQueue } from "./taskQueue";
 import { ProjectionParameter } from "./tileMaker";
 import { j_alert, round } from "./util";
 import { VectorTile } from "./vectorTile";
-import { label_num } from "./template";
+import { label_check, label_num } from "./template";
 
 
 export type MapName = 'gsi_std' | 'gsi_vector' | 'gsi_photo' | 'openStreet';
@@ -497,6 +497,59 @@ export class VectorMap {
     });
   };
 
+  openUrlGenDlg() {
+    $.alert({
+      title: '共有用URL作成',
+      content: div({ class: 'url-gen-dlg' },
+        div({ class: 'd-flex' },
+          label('共有用URL'),
+          input({ type: 'text', class: 'flex-fill mx-1' }),
+          button({ class: 'btn-copy' }, 'Copy')),
+        div({ class: 'mt-2 d-flex' },
+          label_check('include-origin', '基準点を含める', true),
+          label_check('include-minecraft-offset', 'マインクラフト座標オフセットを含める', true),
+        )
+      ),
+      columnClass: 'x-large',
+      type: 'blue',
+      onOpen: () => {
+        $('.url-gen-dlg .label-check input[type=checkbox]').on('change', () => {
+          let url = this.makeSharingURL();
+          $('.url-gen-dlg input[type=text]').val(url);
+          $('.url-gen-dlg .include-minecraft-offset input').prop('disabled', !$('.url-gen-dlg .include-origin input').prop('checked'))
+        });
+        $('.url-gen-dlg .btn-copy').on('click', () => {
+          $('.url-gen-dlg input[type=text]').trigger('select');
+          document.execCommand('copy');
+          $('.url-gen-dlg input[type=text]').trigger('unselect');
+          let sel = document.getSelection();
+          if (sel) sel.removeAllRanges();
+        })
+        $('.url-gen-dlg input[type=text]').val(this.makeSharingURL());
+      }
+    });
+  }
+
+  makeSharingURL(): string {
+    let url0 = new URL(document.URL);
+    url0.search = '';
+    let base = url0.toString();
+    let query: string[] = [];
+    let stat = this.cc.stat;
+    console.log('url0:', url0);
+    if ($('.url-gen-dlg .include-origin input').prop('checked') && stat.origin) {
+      query.push('origin=' + stat.origin.join(','))
+      let m = stat.minecraft_offset;
+      if ($('.url-gen-dlg .include-minecraft-offset input').prop('checked') && m) {
+        query.push('minecraft_offset=' + `${m.x},${m.y},${m.z}`);
+      }
+    }
+    let url = base;
+    if (query.length > 0)
+      url += '?' + query.join('&');
+    return url;
+  }
+
   makeMenu() {
     this.menus.push(new Menu({
       name: '移動',
@@ -630,7 +683,13 @@ export class VectorMap {
         menu.add({
           name: 'GoogleMapを開く',
           action: (e, menu) => { this.openGoogleMap(); }
-        })
+        });
+        menu.addSeparator();
+        menu.add({
+          name: '共有用URLの生成',
+          action: (e, menu) => { this.openUrlGenDlg(); }
+
+        });
         menu.expand(e);
       }
     }));
