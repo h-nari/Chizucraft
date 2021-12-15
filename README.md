@@ -77,18 +77,17 @@ Ctrlキーを押しながら地図をドラッグすることでも
 基準点を設定すると「Minecraft地図」タブが表示可能になります。
 このタブで表示可能な地図は以下の4種類です。
 
-<img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a3.png" width="250">
-<img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a4.png" width="250">
-<img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a5.png" width="250">
-<img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a1.png" width="250">
-
 
 
 
 * 地理院地図：国土地理院の[標準地図](https://maps.gsi.go.jp/development/ichiran.html#std2)
+<img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a3.png" width="250">
 * 航空写真：国土地理院の[写真](https://maps.gsi.go.jp/development/ichiran.html#seamlessphoto)
+<img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a4.png" width="250">
 * [OpenStreetMap](https://openstreetmap.jp/)
+<img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a5.png" width="250">
 * 地理院ベクター: 国土地理院の[ベクタータイル](https://maps.gsi.go.jp/development/vt.html)を描画したもの
+<img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a1.png" width="250">
 
 マウスのドラッグ操作、ホイール操作で
 「地理院地図」タブと同様に地図の移動、拡大縮小ができます。
