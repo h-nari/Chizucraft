@@ -607,10 +607,27 @@ export function helpMenu() {
     children: [
       {
         name: 'このプログラムについて',
-        disable: true,
+        action: (e, menu) => {
+          $.alert({
+            title: 'このプログラムについて',
+            columnClass: 'medium',
+            content: div(
+              div({ class: 'my-2' }, '作成者: @h_nari'),
+              div({ class: 'my-2' },
+                'このプログラムは 国土地理院の',
+                a({ href: 'https://maps.gsi.go.jp/development/ichiran.html' },
+                  '地理院タイル'),
+                'を使用しています。'),
+              div({ class: 'my-2' }, 'ソースファイルは以下で公開されています。'),
+              a({ href: 'https://github.com/h-nari/Chizucraft', target: '_blank' },
+                'https://github.com/h-nari/Chizucraft')
+            )
+          });
+        }
       },
       {
-        name: '使い方'
+        name: '使い方',
+        link_open: 'https://github.com/h-nari/Chizucraft/blob/main/README.md'
       }
     ]
   });

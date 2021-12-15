@@ -14,6 +14,7 @@ export interface MenuOption {
   explain?: string;
   action?: MenuAction;
   link?: string;
+  link_open?: string;
   arg?: any;
   with_check?: boolean;
   checked?: boolean;
@@ -70,8 +71,9 @@ export class Menu {
       $('.tooltip').remove();
       if (this.opt.link) {
         document.location.href = this.opt.link;
-      }
-      else if (this.opt.action) {
+      } else if (this.opt.link_open) {
+        window.open(this.opt.link_open, "_blank");
+      } else if (this.opt.action) {
         if (!this.opt.disable)
           this.opt.action(e, this);
       } else if (this.subMenu.length > 0) {

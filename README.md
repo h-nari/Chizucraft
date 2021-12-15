@@ -9,6 +9,11 @@ map tool for minecraft
 道路端と建物輪郭の情報を抜き出し、
 マインクラフトのブロック(1m)単位で表示します。
 
+以下のURLで使用可能です。
+
+<a href="https://h-nari.github.io/Chizucraft/">
+https://h-nari.github.io/Chizucraft/</a>
+
 <img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a1.png" width="300">
 <img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215b1.png" width="300">
 
