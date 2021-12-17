@@ -86,7 +86,7 @@ Ctrlキーを押しながら地図をドラッグすることでも
 <img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a4.png" width="250">
 * [OpenStreetMap](https://openstreetmap.jp/)
 <img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a5.png" width="250">
-* 地理院ベクター: 国土地理院の[ベクタータイル](https://maps.gsi.go.jp/development/vt.html)を描画したもの
+* 地理院ベクター: 国土地理院の [ベクタータイル](https://maps.gsi.go.jp/development/vt.html) を描画したもの
 <img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a1.png" width="250">
 
 マウスのドラッグ操作、ホイール操作で
