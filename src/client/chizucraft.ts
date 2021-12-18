@@ -1,6 +1,6 @@
 import * as L from 'leaflet';
 import { ProjectionParameter } from './tileMaker';
-import { a, button, div, input, label, option, select, selected } from './tag';
+import { a, button, div, input, label, option, select, selected, span } from './tag';
 import { range, row } from './template';
 import { Menu } from './menu';
 import { MapName, VectorMap } from './vectorMap';
@@ -601,17 +601,37 @@ export class Chizucraft {
   }
 };
 
+function getPackageJson(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    $.ajax({
+      type: 'get',
+      url: 'package.json',
+      dataType: 'json',
+      success: (data, datatype) => {
+        resolve(data);
+      },
+      error: (xhr, ts, et) => {
+        reject(et);
+      }
+    })
+  })
+}
+
 export function helpMenu() {
   let menu = new Menu({
     name: 'ヘルプ',
     children: [
       {
         name: 'このプログラムについて',
-        action: (e, menu) => {
+        action: async (e, menu) => {
+          let packageJson = await getPackageJson();
           $.alert({
             title: 'このプログラムについて',
             columnClass: 'medium',
             content: div(
+              div({ class: 'my-3 ms-1' },
+                span({ class: 'fs-3 fw-bold text-capitalize' }, packageJson.name),
+                div({ class: 'd-inline-block ms-2' }, ' version', packageJson.version)),
               div({ class: 'my-2' }, '作成者: @h_nari'),
               div({ class: 'my-2' },
                 'このプログラムは 国土地理院の',
