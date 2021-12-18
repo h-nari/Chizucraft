@@ -1,12 +1,26 @@
 import * as L from 'leaflet';
-import { ProjectionParameter } from './tileMaker';
-import { a, button, div, input, label, option, select, selected, span } from './tag';
-import { range, row } from './template';
 import { Menu } from './menu';
-import { MapName, VectorMap } from './vectorMap';
+import { a, button, div, input, label, span } from './tag';
+import { row } from './template';
+import { ProjectionParameter } from './tileMaker';
 import { deepAssign, jconfirm } from './util';
+import { MapName, VectorMap } from './vectorMap';
 
 let attribution = "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>";
+
+export interface IMinecraftPoint {
+  bDisp: boolean;
+  color?: string | undefined;
+  x: number;
+  z: number;
+};
+
+export interface IMinecraftShape {
+  bDisp: boolean;
+  bClose?: boolean;
+  color?: string | undefined;
+  vertex: IMinecraftPoint[];
+};
 
 interface cc_stat {
   blocksize: number;    // minecraft block size[m]
@@ -26,6 +40,8 @@ interface cc_stat {
     grid: boolean;
   }
   vector_zoom_max: number;
+  mpoints: IMinecraftPoint[];
+  shapes: IMinecraftShape[];
 };
 
 let init_stat: cc_stat =
@@ -36,7 +52,9 @@ let init_stat: cc_stat =
   marker: { disp: false, grid_size: 2048 },
   minecraft_offset: { x: 0, y: 64, z: 0 },
   disp: { mapName: 'gsi_vector', grid: true },
-  vector_zoom_max: 16
+  vector_zoom_max: 16,
+  mpoints: [],
+  shapes: []
 };
 
 function duplicated_initial_stat() {

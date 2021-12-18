@@ -37,6 +37,35 @@ div.vector-map {
   width: 70px;
 }
 
+.mpoint-list {
+  border-bottom: 1px solid black;
+}
+.mpoint-list .top {
+  display: flex;
+  margin-bottom: 10px;
+}
+.mpoint-list .top .title {
+  font-weight: bold;
+  font-size: large;
+}
+.mpoint-list .mpoint {
+  display: flex;
+  border-top: 1px solid green;
+  padding: 10px;
+}
+.mpoint-list .mpoint > div {
+  display: inline-block;
+}
+.mpoint-list .mpoint button {
+  margin: 2px;
+  font-size: small;
+}
+
+div.fill {
+  display: inline-block;
+  flex-grow: 100;
+}
+
 .tab-pane {
   height: 95vh;
   overflow: auto;

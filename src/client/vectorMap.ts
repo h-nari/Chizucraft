@@ -1,9 +1,9 @@
-import { Chizucraft, helpMenu } from "./chizucraft";
+import { Chizucraft, helpMenu, IMinecraftPoint } from "./chizucraft";
 import { CoordinateTransformation } from "./ct";
 import { VectorTileRenderer } from "./vectorTileRenderer";
 import { Menu } from "./menu";
 import { TileBlockTranformation } from "./t2b";
-import { button, div, icon, input, label, option, select, selected, tag } from "./tag";
+import { button, div, icon, input, label, option, select, selected, span, tag } from "./tag";
 import { TaskControl, TaskQueue } from "./taskQueue";
 import { ProjectionParameter } from "./tileMaker";
 import { j_alert, round } from "./util";
@@ -152,6 +152,8 @@ export class VectorMap {
           bx: this.ct.fromX(e.clientX - this.canvas.offsetLeft),
           by: this.ct.fromY(e.clientY - this.canvas.offsetTop)
         };
+        this.addMpoint(this.ct.fromX(e.clientX - this.canvas.offsetLeft),
+          this.ct.fromY(e.clientY - this.canvas.offsetTop))
         this.draw();
       }
     }).on('wheel', e => {
@@ -550,6 +552,110 @@ export class VectorMap {
     return url;
   }
 
+  addMpoint(x: number, z: number) {
+    this.cc.stat.mpoints.unshift({
+      bDisp: false,
+      x: x + this.cc.stat.minecraft_offset.x,
+      z: z + this.cc.stat.minecraft_offset.z
+    });
+    this.cc.saveStat();
+  }
+
+  dlg_mpoints() {
+    let mpoints = this.cc.stat.mpoints;
+    let s = '';
+    let menu = new Menu({ icon: 'three-dots', z_index: 9999999999 });
+
+    s += div({ class: 'top' },
+      span({ class: 'title' }, '選択点リスト'),
+      div({ class: 'fill' }),
+      menu.html());
+    if (mpoints.length == 0) {
+      s = '選択点リストはありません';
+    } else {
+      for (let p of mpoints) {
+        s += div({ class: 'mpoint' },
+          div(`座標 [ ${p.x} , ${p.z} ]`),
+          div({ class: 'fill' }),
+          button({ title: '表示/非表示' }, icon('check-square')),
+          button({ title: '削除' }, icon('trash')),
+          button({ title: '色変更' }, icon('brush')),
+          button({ title: '座標に移動' }, icon('box-arrow-in-down-left')),
+        );
+      }
+    }
+    let dlg = $.alert({
+      title: '',
+      content: div({ class: 'mpoint-list' }, s),
+      columnClass: 'medium',
+      onOpen: () => {
+        menu.bind();
+      }
+    });
+
+    let len = mpoints.length;
+
+    menu.add({
+      name: '全ての点を表示',
+      disable: len < 1,
+      action: (e, menu) => {
+        for (let p of mpoints)
+          p.bDisp = true;
+        this.draw();
+      }
+    });
+    menu.add({
+      name: '全ての点を非表示',
+      disable: len < 1,
+      action: (e, menu) => {
+        for (let p of mpoints)
+          p.bDisp = false;
+        this.draw();
+      }
+    });
+    menu.addSeparator();
+    menu.add({
+      name: '先頭の2点で直線を生成',
+      disable: len < 2,
+      action: (e, menu) => {
+        this.addShape([mpoints[0], mpoints[1]]);
+        this.draw();
+      }
+    });
+    menu.add({
+      name: '全ての点で折れ線を生成',
+      disable: len < 3,
+      action: (e, menu) => {
+        this.addShape(mpoints);
+        this.draw();
+      }
+    });
+    menu.add({
+      name: '全ての点でポリゴンを生成',
+      disable: len < 3,
+      action: (e, menu) => {
+        this.addShape(mpoints, true);
+        this.draw();
+      }
+    });
+    menu.addSeparator();
+    menu.add({
+      name: 'リストをクリア',
+      disable: mpoints.length < 1,
+      action: (e, menu) => {
+        this.cc.stat.mpoints = [];
+        this.cc.saveStat();
+        dlg.close();
+      }
+    });
+
+  }
+
+  addShape(vertex: IMinecraftPoint[], bClose: boolean = false) {
+    this.cc.stat.shapes.unshift({ bDisp: true, bClose, vertex });
+    this.cc.saveStat();
+  }
+
   makeMenu() {
     this.menus.push(new Menu({
       name: '移動',
@@ -645,6 +751,11 @@ export class VectorMap {
       }, {
         name: 'ベクターマップの最大zoom設定',
         action: (e, menu) => { this.dlg_max_zoom(); }
+      }, {
+        separator: true
+      }, {
+        name: '選択点リスト表示',
+        action: (e, menu) => { this.dlg_mpoints(); }
       }]
     }));
 
@@ -695,6 +806,7 @@ export class VectorMap {
     }));
     this.menus.push(helpMenu());
   }
+
 }
 
 

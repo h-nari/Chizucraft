@@ -20,7 +20,6 @@ div.vector-map {
   margin: 5px;
   display: flex;
   justify-content: center;
-
 }
 
 .label-num {
@@ -33,4 +32,33 @@ div.vector-map {
   input {
     width: 70px;
   }
+}
+
+.mpoint-list {
+  .top {
+    display: flex;
+    margin-bottom: 10px;
+    .title {
+      font-weight: bold;
+      font-size: large;
+    }
+  }
+  .mpoint {
+    display: flex;
+    border-top: 1px solid green;
+    padding: 10px;
+    > div {
+      display: inline-block;
+    }
+    button {
+      margin: 2px;
+      font-size: small;
+    }
+  }
+  border-bottom: 1px solid black;
+}
+
+div.fill {
+  display: inline-block;
+  flex-grow: 100;
 }

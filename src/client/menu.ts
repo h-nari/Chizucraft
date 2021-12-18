@@ -24,6 +24,7 @@ export interface MenuOption {
   children?: MenuOption[];
   onBeforeExpand?: (menu: Menu) => void;
   disable?: boolean;
+  z_index?: number;
 };
 
 export class Menu {
@@ -99,7 +100,8 @@ export class Menu {
       let x = offset?.left || 0;
       let y = (offset?.top || 0) + h + 5;
       let style = `top: ${y}px; left: ${x}px;`;
-      $('body').append(div({ class: 'menu-back', style: 'z-index:1000' },
+      let z_index = `z-index:${this.opt.z_index || 1000}`;
+      $('body').append(div({ class: 'menu-back', style: z_index },
         div({ id: sub_id, style, class: 'menu-stack' }, s)));
       this.subMenu.forEach(m => { m.bind(); });
       $('.menu-back').on('click', () => {
