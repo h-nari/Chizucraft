@@ -887,6 +887,10 @@ export class VectorMap {
           name: 'GoogleMapを開く',
           action: (e, menu) => { this.openGoogleMap(); }
         });
+        menu.add({
+          name: 'Platuauview を開く',
+          link_open: 'https://plateauview.jp/'
+        });
         menu.addSeparator();
         menu.add({
           name: '共有用URLの生成',
