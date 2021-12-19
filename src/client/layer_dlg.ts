@@ -44,6 +44,7 @@ class LayerDialog {
       type: 'blue',
       columnClass: 'small',
       content: this.html(),
+      draggable: true,
       onOpen: () => { this.bind(); }
     });
   }
