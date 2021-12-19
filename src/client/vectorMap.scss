@@ -1,3 +1,5 @@
+@use "shape_dlg.scss"; 
+
 div.vector-map {
   width: 100%;
   height: 99%;
@@ -49,6 +51,12 @@ div.vector-map {
     padding: 10px;
     > div {
       display: inline-block;
+    }
+    input[type="checkbox"] {
+      margin: 6px;
+    }
+    input[type="color"] {
+      width: 27px;
     }
     button {
       margin: 2px;

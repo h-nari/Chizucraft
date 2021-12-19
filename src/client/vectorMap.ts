@@ -1,6 +1,6 @@
 import { Chizucraft, helpMenu, IMinecraftPoint } from "./chizucraft";
 import { CoordinateTransformation } from "./ct";
-import { VectorTileRenderer } from "./vectorTileRenderer";
+import { blockLine, VectorTileRenderer } from "./vectorTileRenderer";
 import { Menu } from "./menu";
 import { TileBlockTranformation } from "./t2b";
 import { button, div, icon, input, label, option, select, selected, span, tag } from "./tag";
@@ -9,6 +9,7 @@ import { ProjectionParameter } from "./tileMaker";
 import { j_alert, round } from "./util";
 import { VectorTile } from "./vectorTile";
 import { label_check, label_num } from "./template";
+import { dlg_shapes } from "./shape_dlg";
 
 
 export type MapName = 'gsi_std' | 'gsi_vector' | 'gsi_photo' | 'openStreet';
@@ -283,7 +284,7 @@ export class VectorMap {
         this.taskQueue.add(() => { return this.drawGrid(ctx); }, new TaskControl());
       this.taskQueue.add(() => { return this.drawXFrame(ctx); }, new TaskControl());
       this.taskQueue.add(() => { return this.drawYFrame(ctx); }, new TaskControl());
-      this.taskQueue.add(() => { return this.drawSelected(ctx) }, new TaskControl());
+      this.taskQueue.add(() => { return this.drawMisc(ctx) }, new TaskControl());
     }
   }
 
@@ -430,15 +431,54 @@ export class VectorMap {
     ctx.restore();
   }
 
-  async drawSelected(ctx: CanvasRenderingContext2D) {
-    let s = this.selected;
-    if (!s) return;
-    let ct = this.ct;
-    if (ct.ax < 1) return;
+  async drawMisc(ctx: CanvasRenderingContext2D) {
+    let off = this.cc.stat.minecraft_offset;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(ct.toX(s.bx), ct.toY(s.by), ct.ax, ct.ay);
-    ctx.fillStyle = 'yellow';
+    ctx.rect(this.mx0, this.my0, this.canvas.width - this.mx0 - this.mx1, this.canvas.height - this.my0 - this.my1);
+    ctx.clip();
+    for (let s of this.cc.stat.shapes) {
+      console.log('s:', s);
+      if (s.bDisp) {
+        ctx.fillStyle = s.color || '#008000';
+        let bx0 = Math.floor(s.vertex[0].x) - off.x + 0.5;
+        let by0 = Math.floor(s.vertex[0].z) - off.z + 0.5;
+        for (let i = 1; i < s.vertex.length; i++) {
+          let bx = Math.floor(s.vertex[i].x) - off.x + 0.5;
+          let by = Math.floor(s.vertex[i].z) - off.z + 0.5;
+          blockLine(ctx, this.ct, bx0, by0, bx, by);
+          bx0 = bx;
+          by0 = by;
+        }
+        if(s.bClose){
+          let bx = Math.floor(s.vertex[0].x) - off.x + 0.5;
+          let by = Math.floor(s.vertex[0].z) - off.z + 0.5;
+          blockLine(ctx, this.ct, bx0, by0, bx, by);
+        }
+      }
+    }
+
+    for (let m of this.cc.stat.mpoints) {
+      if (m.bDisp)
+        this.drawBlock(ctx, m.x, m.z, m.color);
+    }
+
+    let s = this.selected;
+    if (s) {
+      let off = this.cc.stat.minecraft_offset;
+      this.drawBlock(ctx, s.bx + off.x, s.by + off.z);
+    }
+    ctx.restore();
+  }
+
+  drawBlock(ctx: CanvasRenderingContext2D, mx: number, mz: number, color: string | undefined = undefined) {
+    let ct = this.ct;
+    if (ct.ax < 1) return;
+    let off = this.cc.stat.minecraft_offset;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ct.toX(mx - off.x), ct.toY(mz - off.z), ct.ax, ct.ay);
+    ctx.fillStyle = color || 'yellow';
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 2;
     ctx.globalAlpha = 0.5;
@@ -564,32 +604,69 @@ export class VectorMap {
   dlg_mpoints() {
     let mpoints = this.cc.stat.mpoints;
     let s = '';
-    let menu = new Menu({ icon: 'three-dots', z_index: 9999999999 });
-
-    s += div({ class: 'top' },
-      span({ class: 'title' }, '選択点リスト'),
-      div({ class: 'fill' }),
-      menu.html());
-    if (mpoints.length == 0) {
-      s = '選択点リストはありません';
-    } else {
-      for (let p of mpoints) {
-        s += div({ class: 'mpoint' },
-          div(`座標 [ ${p.x} , ${p.z} ]`),
-          div({ class: 'fill' }),
-          button({ title: '表示/非表示' }, icon('check-square')),
-          button({ title: '削除' }, icon('trash')),
-          button({ title: '色変更' }, icon('brush')),
-          button({ title: '座標に移動' }, icon('box-arrow-in-down-left')),
-        );
+    var menu = new Menu({ name: 'Menu', z_index: 9999999999 });
+    let html = () => {
+      let s = div({ class: 'top' },
+        div({ class: 'fill' }),
+        menu.html());
+      if (mpoints.length == 0) {
+        s = '選択点リストはありません';
+      } else {
+        for (let i = 0; i < mpoints.length; i++) {
+          let p = mpoints[i];
+          s += div({ class: 'mpoint', idx: i },
+            input({ class: 'chk-disp', type: 'checkbox', checked: selected(p.bDisp) }),
+            div(`座標 [ ${p.x} , ${p.z} ]`),
+            div({ class: 'fill' }),
+            button({ class: 'btn-delete', title: '削除' }, icon('trash')),
+            button({ class: 'btn-jump', title: '座標に移動' }, icon('box-arrow-in-down-left')),
+            input({ class: 'input-color', type: 'color', value: p.color || '#ffff00' }),
+          );
+        }
       }
+      return div({ class: 'mpoint-list' }, s);
     }
     let dlg = $.alert({
-      title: '',
-      content: div({ class: 'mpoint-list' }, s),
+      title: '選択点リスト',
+      content: html(),
       columnClass: 'medium',
+      draggable: true,
       onOpen: () => {
         menu.bind();
+        $('.mpoint .chk-disp').on('change', e => {
+          let idx = Number($(e.currentTarget).parent().attr('idx'));
+          this.cc.stat.mpoints[idx].bDisp = !this.cc.stat.mpoints[idx].bDisp;
+          this.draw();
+        });
+        $('.mpoint .btn-delete').on('click', e => {
+          let p = $(e.currentTarget).parent();
+          let idx = Number(p.attr('idx'));
+          this.cc.stat.mpoints.splice(idx, 1);
+          this.cc.saveStat();
+          this.draw();
+          let n = p.next('.mpoint');
+          while (n.length > 0) {
+            n.attr('idx', idx++);
+            n = n.next('.mpoint');
+          }
+          p.remove();
+        });
+        $('.mpoint .btn-jump').on('click', e => {
+          let idx = Number($(e.currentTarget).parent().attr('idx'));
+          let mp = this.cc.stat.mpoints[idx];
+          let off = this.cc.stat.minecraft_offset;
+          let c = this.canvas;
+          mp.bDisp = true;
+          this.ct.moveTo(mp.x - off.x, mp.z - off.z, this.ct.ax, c.width / 2, c.height / 6);
+          this.cc.saveView();
+          this.draw();
+        });
+        $('.mpoint .input-color').on('change', e => {
+          let idx = Number($(e.currentTarget).parent().attr('idx'));
+          this.cc.stat.mpoints[idx].color = $(e.currentTarget).val() as string;
+          this.cc.saveStat();
+          this.draw();
+        });
       }
     });
 
@@ -601,6 +678,7 @@ export class VectorMap {
       action: (e, menu) => {
         for (let p of mpoints)
           p.bDisp = true;
+        $('.mpoint input[type=checkbox]').prop('checked', true);
         this.draw();
       }
     });
@@ -610,6 +688,7 @@ export class VectorMap {
       action: (e, menu) => {
         for (let p of mpoints)
           p.bDisp = false;
+        $('.mpoint input[type=checkbox]').prop('checked', false);
         this.draw();
       }
     });
@@ -618,7 +697,7 @@ export class VectorMap {
       name: '先頭の2点で直線を生成',
       disable: len < 2,
       action: (e, menu) => {
-        this.addShape([mpoints[0], mpoints[1]]);
+        this.addShape([mpoints[0], mpoints[1]], false);
         this.draw();
       }
     });
@@ -645,14 +724,16 @@ export class VectorMap {
       action: (e, menu) => {
         this.cc.stat.mpoints = [];
         this.cc.saveStat();
+        this.selected = undefined;
+        this.draw();
         dlg.close();
       }
     });
 
   }
 
-  addShape(vertex: IMinecraftPoint[], bClose: boolean = false) {
-    this.cc.stat.shapes.unshift({ bDisp: true, bClose, vertex });
+  addShape(vertex: IMinecraftPoint[], bClose: boolean = false, color: string = '#008000') {
+    this.cc.stat.shapes.unshift({ bDisp: true, bClose, vertex, color });
     this.cc.saveStat();
   }
 
@@ -756,6 +837,9 @@ export class VectorMap {
       }, {
         name: '選択点リスト表示',
         action: (e, menu) => { this.dlg_mpoints(); }
+      }, {
+        name: '図形リスト表示',
+        action: (e, menu) => { dlg_shapes(this); }
       }]
     }));
 

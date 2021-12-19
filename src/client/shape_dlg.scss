@@ -1,0 +1,18 @@
+.shape-dlg {
+  .shape {
+    display: flex;
+    border-top: 1px solid green;
+    padding: 10px;
+    input[type="checkbox"] {
+      margin: 6px;
+    }
+    input[type="color"] {
+      width: 27px;
+    }
+    button {
+      margin: 2px;
+      font-size: small;
+    }
+  }
+  border-bottom: 1px solid black;
+}

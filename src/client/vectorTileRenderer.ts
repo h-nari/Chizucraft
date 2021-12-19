@@ -119,8 +119,14 @@ export class VectorTileRenderer {
         feature.geo_parse((cmd, x, y) => {
           let bx = this.tb.toBx(x * 256 / 4096 + this.tx);
           let by = this.tb.toBy(y * 256 / 4096 + this.ty);
-          if (cmd == 'lineto')
-            this.blockLine(bx0, by0, bx, by);
+          if (cmd == 'lineto') {
+            this.ctx.save();
+            this.ctx.beginPath();
+            this.ctx.rect(this.x0, this.y0, this.x1 - this.x0, this.y1 - this.y0);
+            this.ctx.clip();
+            blockLine(this.ctx, this.ct, bx0, by0, bx, by);
+            this.ctx.restore();
+          }
           bx0 = bx;
           by0 = by;
         });
@@ -159,55 +165,45 @@ export class VectorTileRenderer {
     });
     ctx.restore();
   }
+}
 
-  blockLine(bx0: number, by0: number, bx1: number, by1: number) {
-    let x0 = this.ct.toX(bx0);
-    let x1 = this.ct.toX(bx1);
-    if (x0 < this.x0 && x1 < this.x0) return;
-    if (x0 > this.x1 && x1 > this.x1) return;
-    let y0 = this.ct.toY(by0);
-    let y1 = this.ct.toY(by1);
-    if (y0 < this.y0 && y1 < this.y0) return;
-    if (y0 > this.y1 && y1 > this.y1) return;
+export function blockLine(ctx: CanvasRenderingContext2D, ct: CoordinateTransformation, bx0: number, by0: number, bx1: number, by1: number) {
+  let x0 = ct.toX(bx0);
+  let x1 = ct.toX(bx1);
+  let y0 = ct.toY(by0);
+  let y1 = ct.toY(by1);
 
-    this.ctx.save();
-    this.ctx.beginPath();
-    this.ctx.rect(this.x0, this.y0, this.x1 - this.x0, this.y1 - this.y0);
-    this.ctx.clip();
+  let dx = Math.abs(bx1 - bx0);
+  let dy = Math.abs(by1 - by0);
 
-    // this.ctx.globalAlpha = 0.5;
-    let dx = Math.abs(bx1 - bx0);
-    let dy = Math.abs(by1 - by0);
-    this.drawBlock(bx0, by0);
-    if (dx > dy) {
-      if (bx0 > bx1) {
-        [bx0, bx1] = [bx1, bx0];
-        [by0, by1] = [by1, by0];
-      }
-      for (let bx = Math.ceil(bx0) + 0.5; bx < bx1; bx++) {
-        let by = by0 + (by1 - by0) * (bx - bx0) / (bx1 - bx0);
-        this.drawBlock(bx, by);
-      }
-    } else {
-      if (by0 > by1) {
-        [bx0, bx1] = [bx1, bx0];
-        [by0, by1] = [by1, by0];
-      }
-      for (let by = Math.ceil(by0) + 0.5; by < by1; by++) {
-        let bx = bx0 + (bx1 - bx0) * (by - by0) / (by1 - by0);
-        this.drawBlock(bx, by);
-      }
+  drawBlock(ctx, ct, bx0, by0);
+  if (dx > dy) {
+    if (bx0 > bx1) {
+      [bx0, bx1] = [bx1, bx0];
+      [by0, by1] = [by1, by0];
     }
-    this.drawBlock(bx1, by1);
-    this.ctx.restore();
+    for (let bx = Math.ceil(bx0) + 0.5; bx < bx1; bx++) {
+      let by = by0 + (by1 - by0) * (bx - bx0) / (bx1 - bx0);
+      drawBlock(ctx, ct, bx, by);
+    }
+  } else {
+    if (by0 > by1) {
+      [bx0, bx1] = [bx1, bx0];
+      [by0, by1] = [by1, by0];
+    }
+    for (let by = Math.ceil(by0) + 0.5; by < by1; by++) {
+      let bx = bx0 + (bx1 - bx0) * (by - by0) / (by1 - by0);
+      drawBlock(ctx, ct, bx, by);
+    }
   }
+  drawBlock(ctx, ct, bx1, by1);
+}
 
 
-  drawBlock(bx: number, by: number) {
-    let x = this.ct.toX(Math.floor(bx));
-    let y = this.ct.toY(Math.floor(by));
-    this.ctx.fillRect(x, y, this.ct.ax, this.ct.ay);
-  }
+function drawBlock(ctx: CanvasRenderingContext2D, ct: CoordinateTransformation, bx: number, by: number) {
+  let x = ct.toX(Math.floor(bx));
+  let y = ct.toY(Math.floor(by));
+  ctx.fillRect(x, y, ct.ax, ct.ay);
 }
 
 

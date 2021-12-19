@@ -22,7 +22,7 @@ export interface IMinecraftShape {
   vertex: IMinecraftPoint[];
 };
 
-interface cc_stat {
+export interface cc_stat {
   blocksize: number;    // minecraft block size[m]
   origin?: [number, number];  // LatLng
   origin_disp: boolean;
