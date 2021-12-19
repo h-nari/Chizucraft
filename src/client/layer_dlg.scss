@@ -1,0 +1,19 @@
+.layer-dlg {
+  .layer {
+    display: flex;
+    margin: 5px;
+    padding: 2px;
+    border-bottom: 1px solid black;
+    .chk-disp {
+      margin: 7px;
+    }
+    .name {
+      display: inline-block;
+      flex-grow: 10;
+    }
+    .color {
+      height: 20px;
+      margin: 3px;
+    }
+  }
+}

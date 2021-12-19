@@ -1,3 +1,4 @@
+import { cc_stat } from "./chizucraft";
 import { CoordinateTransformation } from "./ct";
 import { TileBlockTranformation } from "./t2b";
 import { TaskControl } from "./taskQueue";
@@ -26,9 +27,10 @@ export class VectorTileRenderer {
   y0 = 0;
   x1 = 0;
   y1 = 0;
+  stat: cc_stat;
 
   constructor(ctx: CanvasRenderingContext2D, ct: CoordinateTransformation, tb: TileBlockTranformation,
-    tx: number, ty: number, vm: VectorTile) {
+    tx: number, ty: number, vm: VectorTile, stat: cc_stat) {
     this.ctx = ctx;
     this.ct = ct;
     this.tb = tb;
@@ -36,6 +38,7 @@ export class VectorTileRenderer {
     this.ty = ty;
     this.vm = vm;
     this.currentLayer = undefined;
+    this.stat = stat;
   }
 
   setArea(x0: number, y0: number, x1: number, y1: number) {
@@ -97,8 +100,9 @@ export class VectorTileRenderer {
         this.features = this.currentLayer.features.concat();
       } else if (this.drawFuncs.length > 0) {
         this.currentDrawFunc = this.drawFuncs.shift() as DrawFunc;
-        const weight: { [key: string]: number } = { 'building': 10, 'road': 20 };
-        this.layers = Object.values(this.vm.layers).sort((a, b) => (weight[a.name] || 0) - (weight[b.name] || 0));
+        // const weight: { [key: string]: number } = { 'building': 10, 'road': 20 };
+        let layer = this.stat.layer;
+        this.layers = Object.values(this.vm.layers).sort((a, b) => (layer[a.name]?.ord || 0) - (layer[b.name]?.ord || 0));
         this.features = [];
       } else {
         return this.resolve('done');
@@ -111,10 +115,10 @@ export class VectorTileRenderer {
     if (this.currentLayer?.name == 'road' && feature.attr('rnkWidth')) return;
     if (this.ct.ax >= 4) {
       let name = this.currentLayer?.name;
-      let colors: { [name: string]: string } = { road: 'gray', building: 'red', river: 'blue' };
-      if ((name && name in colors && feature.feature.getType() != 3)) {
+      let layer = this.stat.layer;
+      if ((name && name in layer && layer[name].bBlockDisp && feature.feature.getType() != 3)) {
         this.ctx.save();
-        this.ctx.fillStyle = colors[name];
+        this.ctx.fillStyle = layer[name].blockColor;
         var bx0: number, by0: number;
         feature.geo_parse((cmd, x, y) => {
           let bx = this.tb.toBx(x * 256 / 4096 + this.tx);

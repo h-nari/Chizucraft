@@ -42,6 +42,13 @@ export interface cc_stat {
   vector_zoom_max: number;
   mpoints: IMinecraftPoint[];
   shapes: IMinecraftShape[];
+  layer: {
+    [name: string]: {
+      bBlockDisp: boolean;
+      blockColor: string;
+      ord: number;
+    }
+  }
 };
 
 let init_stat: cc_stat =
@@ -54,7 +61,13 @@ let init_stat: cc_stat =
   disp: { mapName: 'gsi_vector', grid: true },
   vector_zoom_max: 16,
   mpoints: [],
-  shapes: []
+  shapes: [],
+  layer: {
+    'river': { bBlockDisp: true, blockColor: '#0000ff', ord: 10 },
+    'building': { bBlockDisp: true, blockColor: '#ff0000', ord: 20 },
+    'road': { bBlockDisp: true, blockColor: '#808080', ord: 30 },
+    'railway': { bBlockDisp: true, blockColor: '#00ff00', ord: 40 },
+  }
 };
 
 function duplicated_initial_stat() {

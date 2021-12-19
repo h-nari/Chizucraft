@@ -10,6 +10,7 @@ import { j_alert, round } from "./util";
 import { VectorTile } from "./vectorTile";
 import { label_check, label_num } from "./template";
 import { dlg_shapes } from "./shape_dlg";
+import { dlg_layer } from "./layer_dlg";
 
 
 export type MapName = 'gsi_std' | 'gsi_vector' | 'gsi_photo' | 'openStreet';
@@ -306,7 +307,7 @@ export class VectorMap {
         if (!arrayBuffer) return;
         let data = new Uint8Array(arrayBuffer);
         let vm = new VectorTile(data);
-        let renderer = new VectorTileRenderer(ctx, ct, tb, tx, ty, vm);
+        let renderer = new VectorTileRenderer(ctx, ct, tb, tx, ty, vm, that.cc.stat);
         renderer.setArea(that.mx0, that.my0, that.canvas.width - that.mx1, that.canvas.height - that.my1);
         renderer.draw(ctrl).then(() => { resolve(); });
       }
@@ -450,7 +451,7 @@ export class VectorMap {
           bx0 = bx;
           by0 = by;
         }
-        if(s.bClose){
+        if (s.bClose) {
           let bx = Math.floor(s.vertex[0].x) - off.x + 0.5;
           let by = Math.floor(s.vertex[0].z) - off.z + 0.5;
           blockLine(ctx, this.ct, bx0, by0, bx, by);
@@ -790,9 +791,11 @@ export class VectorMap {
             }
           });
         }
-      }, {
-        separator: true
-      }, {
+      }]
+    }));
+    this.menus.push(new Menu({
+      name: '表示',
+      children: [{
         name: 'マインクラフトの座標設定',
         action: (e, menu) => {
           let sel = this.selected;
@@ -840,11 +843,16 @@ export class VectorMap {
       }, {
         name: '図形リスト表示',
         action: (e, menu) => { dlg_shapes(this); }
+      }, {
+        separator: true
+      }, {
+        name: '表示レイヤー設定',
+        action: (e, menu) => { dlg_layer(this); }
       }]
     }));
 
     this.menus.push(new Menu({
-      name: '表示',
+      name: '地図',
       action: (e, menu) => {
         menu.clear();
         menu.add({

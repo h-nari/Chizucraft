@@ -20,6 +20,24 @@
   font-size: small;
 }
 
+.layer-dlg .layer {
+  display: flex;
+  margin: 5px;
+  padding: 2px;
+  border-bottom: 1px solid black;
+}
+.layer-dlg .layer .chk-disp {
+  margin: 7px;
+}
+.layer-dlg .layer .name {
+  display: inline-block;
+  flex-grow: 10;
+}
+.layer-dlg .layer .color {
+  height: 20px;
+  margin: 3px;
+}
+
 div.vector-map {
   width: 100%;
   height: 99%;
