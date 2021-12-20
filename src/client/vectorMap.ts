@@ -180,11 +180,9 @@ export class VectorMap {
     let c = this.canvas;
     let { clientWidth: w, clientHeight: h } = c;
 
-    if (c.width == 0)
-      this.ct.bx = w / 2;
+    // if (c.width == 0) this.ct.bx = w / 2;
     c.width = w;
-    if (c.height == 0)
-      this.ct.by = h / 2;
+    // if (c.height == 0) this.ct.by = h / 2;
     c.height = h;
     this.draw();
   }
@@ -416,7 +414,7 @@ export class VectorMap {
     ctx.strokeStyle = 'black';
     ctx.stroke();
     ctx.fillStyle = 'black';
-    ctx.textBaseline = 'alphabetic';
+    ctx.textBaseline = 'top';
     for (let g of grids) {
       ctx.strokeStyle = g[1];
       if (this.ct.ax * g[0] < 50) continue;
@@ -426,7 +424,7 @@ export class VectorMap {
         ctx.moveTo(0, y);
         ctx.lineTo(this.mx0, y);
         ctx.stroke();
-        ctx.fillText(`z:${mz}`, 2, y - 2);
+        ctx.fillText(`z:${mz}`, 2, y + 2);
       }
     }
     ctx.restore();
@@ -796,6 +794,19 @@ export class VectorMap {
     this.menus.push(new Menu({
       name: '表示',
       children: [{
+        name: 'グリッド表示',
+        with_check: true,
+        onBeforeExpand: menu => {
+          menu.opt.checked = this.cc.stat.disp.grid;
+        },
+        action: (e, menu) => {
+          this.cc.stat.disp.grid = menu.opt.checked = !menu.opt.checked;
+          this.cc.saveStat();
+          this.draw();
+        }
+      }, {
+        separator: true
+      }, {
         name: 'マインクラフトの座標設定',
         action: (e, menu) => {
           let sel = this.selected;
@@ -855,20 +866,6 @@ export class VectorMap {
       name: '地図',
       action: (e, menu) => {
         menu.clear();
-        menu.add({
-          name: 'グリッド表示',
-          with_check: true,
-          onBeforeExpand: menu => {
-            menu.opt.checked = this.cc.stat.disp.grid;
-          },
-          action: (e, menu) => {
-            this.cc.stat.disp.grid = menu.opt.checked = !menu.opt.checked;
-            this.cc.saveStat();
-            this.draw();
-          }
-        });
-        menu.addSeparator();
-
         for (let ms of mapSorces) {
           menu.add({
             name: ms.dispName,
