@@ -124,10 +124,10 @@ export class VectorMap {
     var x0 = 0;
     var y0 = 0;
     var pressed = false;
-    var moved = false;
+    var moved = 0;
     $(this.canvas).on('mousedown', e => {
       pressed = true;
-      moved = false;
+      moved = 0;
       x0 = e.clientX;
       y0 = e.clientY;
       e.preventDefault();
@@ -137,9 +137,9 @@ export class VectorMap {
         let y = e.clientY;
         if (this.ct.pan(x - x0, y - y0))
           this.draw();
+        moved += Math.abs(x - x0) + Math.abs(y - y0);
         x0 = x;
         y0 = y;
-        moved = true;
       }
       e.preventDefault();
     }).on('mouseup', e => {
@@ -149,7 +149,8 @@ export class VectorMap {
       pressed = false;
       e.preventDefault();
     }).on('click', e => {
-      if (!moved) {
+      console.log('moved:',moved);
+      if (moved < 5) {
         let s = this.selected = {
           bx: this.ct.fromX(e.clientX - this.canvas.offsetLeft),
           by: this.ct.fromY(e.clientY - this.canvas.offsetTop)
@@ -437,7 +438,6 @@ export class VectorMap {
     ctx.rect(this.mx0, this.my0, this.canvas.width - this.mx0 - this.mx1, this.canvas.height - this.my0 - this.my1);
     ctx.clip();
     for (let s of this.cc.stat.shapes) {
-      console.log('s:', s);
       if (s.bDisp) {
         ctx.fillStyle = s.color || '#008000';
         let bx0 = Math.floor(s.vertex[0].x) - off.x + 0.5;
