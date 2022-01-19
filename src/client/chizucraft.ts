@@ -636,7 +636,7 @@ function getPackageJson(): Promise<any> {
   return new Promise((resolve, reject) => {
     $.ajax({
       type: 'get',
-      url: 'package.json',
+      url: 'package.json?' + Date.now(),
       dataType: 'json',
       success: (data, datatype) => {
         resolve(data);
