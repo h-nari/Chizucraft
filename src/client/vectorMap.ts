@@ -149,7 +149,7 @@ export class VectorMap {
       pressed = false;
       e.preventDefault();
     }).on('click', e => {
-      console.log('moved:',moved);
+      console.log('moved:', moved);
       if (moved < 5) {
         let s = this.selected = {
           bx: this.ct.fromX(e.clientX - this.canvas.offsetLeft),
@@ -597,6 +597,7 @@ export class VectorMap {
       x: x + this.cc.stat.minecraft_offset.x,
       z: z + this.cc.stat.minecraft_offset.z
     });
+    this.cc.stat.mpoints.splice(20);
     this.cc.saveStat();
   }
 
