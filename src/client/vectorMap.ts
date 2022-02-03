@@ -113,8 +113,8 @@ export class VectorMap {
     return div({ class: 'vector-map' },
       div({ class: 'topbar' },
         div({ class: 'flex-fill mx-2 status' }),
-        div({ class: 'icon-box' }, button({ 
-          class: 'btn btn-minecraft-jump-by-clipboard' ,
+        div({ class: 'icon-box' }, button({
+          class: 'btn btn-minecraft-jump-by-clipboard',
           title: 'クリップボードのマインクラフト座標へジャンプ'
         }, icon('box-arrow-in-down-left'))),
         ... this.menus.map(m => m.html())),
@@ -743,6 +743,46 @@ export class VectorMap {
     this.cc.saveStat();
   }
 
+  /**
+   * 指定されたマインクラフト座標(tx,tz)のブロックを選択し、中心に表示する
+   * 
+   * @param tx マインクラフトX座病
+   * @param tz マインクラフトZ座病
+   */
+   minecraft_goto(tx: number, tz: number) {
+    this.selected = {
+      bx: tx - this.cc.stat.minecraft_offset.x,
+      by: tz - this.cc.stat.minecraft_offset.z
+    };
+    this.ct.moveTo(this.selected.bx, this.selected.by,
+      this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
+    this.draw();
+  }
+
+  /**
+   * クリップボードのマインクラフト座標へ移動
+   */
+  minecraft_jump_by_clipboard() {
+    if (navigator.clipboard) {
+      navigator.clipboard.readText().then(text => {
+        console.log('clipboard text:', text);
+        // textの例: /execute in minecraft:overworld run tp @s -3548.68 68.00 1196.12 -234.14 90.00
+        let m = text.match(/tp @s\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+/);
+        console.log('m:', m);
+        if (m) {
+          let tx = Math.floor(parseFloat(m[1]));
+          let tz = Math.floor(parseFloat(m[3]));
+          this.minecraft_goto(tx, tz);
+        } else {
+          minecraft_clipboard_message();
+        }
+      })
+    } else {
+      console.log('no clipboard');
+    }
+
+  }
+
   makeMenu() {
     this.menus.push(new Menu({
       name: '移動',
@@ -927,44 +967,6 @@ export class VectorMap {
       }
     }));
     this.menus.push(helpMenu());
-  }
-
-  /**
-   * 指定されたマインクラフト座標(tx,tz)のブロックを選択し、中心に表示する
-   * 
-   * @param tx マインクラフトX座病
-   * @param tz マインクラフトZ座病
-   */
-  minecraft_goto(tx: number, tz: number) {
-    this.selected = {
-      bx: tx - this.cc.stat.minecraft_offset.x,
-      by: tz - this.cc.stat.minecraft_offset.z
-    };
-    this.ct.moveTo(this.selected.bx, this.selected.by,
-      this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
-    this.draw();
-  }
-
-
-  minecraft_jump_by_clipboard() {
-    if (navigator.clipboard) {
-      navigator.clipboard.readText().then(text => {
-        console.log('clipboard text:', text);
-        // textの例: /execute in minecraft:overworld run tp @s -3548.68 68.00 1196.12 -234.14 90.00
-        let m = text.match(/tp @s\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+/);
-        console.log('m:', m);
-        if (m) {
-          let tx = parseFloat(m[1]);
-          let tz = parseFloat(m[3]);
-          this.minecraft_goto(tx, tz);
-        } else {
-          minecraft_clipboard_message();
-        }
-      })
-    } else {
-      console.log('no clipboard');
-    }
-
   }
 
 
