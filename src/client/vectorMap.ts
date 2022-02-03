@@ -11,6 +11,7 @@ import { VectorTile } from "./vectorTile";
 import { label_check, label_num } from "./template";
 import { dlg_shapes } from "./shape_dlg";
 import { dlg_layer } from "./layer_dlg";
+import { assert_not_null } from "./asserts";
 
 
 export type MapName = 'gsi_std' | 'gsi_vector' | 'gsi_photo' | 'openStreet';
@@ -112,6 +113,10 @@ export class VectorMap {
     return div({ class: 'vector-map' },
       div({ class: 'topbar' },
         div({ class: 'flex-fill mx-2 status' }),
+        div({ class: 'icon-box' }, button({ 
+          class: 'btn btn-minecraft-jump-by-clipboard' ,
+          title: 'クリップボードのマインクラフト座標へジャンプ'
+        }, icon('box-arrow-in-down-left'))),
         ... this.menus.map(m => m.html())),
       tag('canvas', { id: 'vector-map-canvas' }));
   }
@@ -121,6 +126,7 @@ export class VectorMap {
     window.onresize = e => {
       this.update_canvas_size();
     };
+    $('.btn-minecraft-jump-by-clipboard').on('click', e => { this.minecraft_jump_by_clipboard(); })
     var x0 = 0;
     var y0 = 0;
     var pressed = false;
@@ -770,23 +776,45 @@ export class VectorMap {
           $.confirm({
             title: 'マインクラフトの座標に移動',
             type: 'green',
+            columnClass: 'small',
             content: div({ class: 'minecraft-goto-dlg' },
               div('移動先の座標'),
-              div(label_num('x', x), label_num('z', z))
+              div(label_num('x', x), label_num('z', z),
+                div({ class: 'coordinate-from-clipboard my-3' },
+                  button({ class: 'btn btn-exec btn-sm btn-outline-dark' },
+                    '座標をクリップボードから取得'),
+                )
+              )
             ),
             buttons: {
               '移動': () => {
                 let tx = Number($('.minecraft-goto-dlg .x input').val());
                 let tz = Number($('.minecraft-goto-dlg .z input').val());
-                this.selected = {
-                  bx: tx - this.cc.stat.minecraft_offset.x,
-                  by: tz - this.cc.stat.minecraft_offset.z
-                };
-                this.ct.moveTo(this.selected.bx, this.selected.by,
-                  this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
-                this.draw();
+                this.minecraft_goto(tx, tz);
               },
               'キャンセル': () => { }
+            },
+            onOpen: () => {
+              console.log('onOpen');
+              $('.minecraft-goto-dlg .btn-exec').on('click', () => {
+                console.log('click!');
+                if (navigator.clipboard) {
+                  navigator.clipboard.readText().then(text => {
+                    console.log('text:', text);
+                    // textの例: /execute in minecraft:overworld run tp @s -3548.68 68.00 1196.12 -234.14 90.00
+                    let m = text.match(/tp @s\s+(-?\d+)\.\d+\s+(-?\d+)\.\d+\s+(-?\d+)\.\d+\s+/);
+                    console.log('m:', m);
+                    if (m) {
+                      $('.minecraft-goto-dlg .x input').val(m[1]);
+                      $('.minecraft-goto-dlg .z input').val(m[3]);
+                    } else {
+                      minecraft_clipboard_message();
+                    }
+                  })
+                } else {
+                  console.log('no clipboard');
+                }
+              });
             }
           });
         }
@@ -901,6 +929,56 @@ export class VectorMap {
     this.menus.push(helpMenu());
   }
 
+  /**
+   * 指定されたマインクラフト座標(tx,tz)のブロックを選択し、中心に表示する
+   * 
+   * @param tx マインクラフトX座病
+   * @param tz マインクラフトZ座病
+   */
+  minecraft_goto(tx: number, tz: number) {
+    this.selected = {
+      bx: tx - this.cc.stat.minecraft_offset.x,
+      by: tz - this.cc.stat.minecraft_offset.z
+    };
+    this.ct.moveTo(this.selected.bx, this.selected.by,
+      this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
+    this.draw();
+  }
+
+
+  minecraft_jump_by_clipboard() {
+    if (navigator.clipboard) {
+      navigator.clipboard.readText().then(text => {
+        console.log('clipboard text:', text);
+        // textの例: /execute in minecraft:overworld run tp @s -3548.68 68.00 1196.12 -234.14 90.00
+        let m = text.match(/tp @s\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+/);
+        console.log('m:', m);
+        if (m) {
+          let tx = parseFloat(m[1]);
+          let tz = parseFloat(m[3]);
+          this.minecraft_goto(tx, tz);
+        } else {
+          minecraft_clipboard_message();
+        }
+      })
+    } else {
+      console.log('no clipboard');
+    }
+
+  }
+
+
 }
 
+
+function minecraft_clipboard_message() {
+  $.alert({
+    title: 'マインクラフトの座標をクリップボードから取得',
+    type: 'blue',
+    columnClass: 'large',
+    content: div({ class: 'text-center' },
+      div({ class: 'my-3 alert alert-warning' }, 'クリップボードに座標情報がありません'),
+      div({ class: 'my-3' }, 'マインクラフトJava版では <b>F3 + C</b>  で座標情報をクリップボードにコピーできます'))
+  })
+}
 

@@ -109,6 +109,11 @@ div.fill {
   flex-grow: 100;
 }
 
+.minecraft-goto-dlg .coordinate-from-clipboard {
+  display: flex;
+  justify-content: center;
+}
+
 .tab-pane {
   height: 95vh;
   overflow: auto;

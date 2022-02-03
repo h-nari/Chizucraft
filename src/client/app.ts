@@ -9,7 +9,7 @@ declare global {
 $(() => {
   $('.tab-bar a.nav-link').on('click', e => {
     let target = $(e.currentTarget).prop('target');
-      window.cc.tab_set(target);
+    window.cc.tab_set(target);
     e.preventDefault();
   });
 
