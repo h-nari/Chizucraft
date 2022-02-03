@@ -1,4 +1,4 @@
-# Chizucraft
+# Chizucraft <!-- omit in toc -->
 
 map tool for minecraft
 
@@ -10,6 +10,18 @@ map tool for minecraft
 マインクラフトのブロック(1m)単位で表示します。
 
 以下のURLで使用可能です。
+
+- [使い方](#使い方)
+  - [「地理院地図」タブ](#地理院地図タブ)
+    - [マーカー](#マーカー)
+    - [基準点](#基準点)
+  - [「Minecraft地図」タブ](#minecraft地図タブ)
+  - [最後に](#最後に)
+- [変更履歴](#変更履歴)
+  - [v1.3.0](#v130)
+  - [v1.2.0](#v120)
+  - [v1.1.0](#v110)
+  - [v1.0.0](#v100)
 
 <a href="https://h-nari.github.io/Chizucraft/">
 https://h-nari.github.io/Chizucraft/</a>
@@ -114,6 +126,12 @@ Ctrlキーを押しながら地図をドラッグすることでも
 マインクラフト・ライブの助けになれば幸いです。
 
 # 変更履歴
+
+## v1.3.0
+
+- 2022/02/03(Thu)リリース
+- クリップボードのマインクラフト座標にジャンプ機能を追加
+- README.mdに目次追加
 
 ## v1.2.0
 
