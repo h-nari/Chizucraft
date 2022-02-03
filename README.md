@@ -11,6 +11,9 @@ map tool for minecraft
 
 以下のURLで使用可能です。
 
+<a href="https://h-nari.github.io/Chizucraft/">
+https://h-nari.github.io/Chizucraft/</a>
+
 - [使い方](#使い方)
   - [「地理院地図」タブ](#地理院地図タブ)
     - [マーカー](#マーカー)
@@ -22,9 +25,6 @@ map tool for minecraft
   - [v1.2.0](#v120)
   - [v1.1.0](#v110)
   - [v1.0.0](#v100)
-
-<a href="https://h-nari.github.io/Chizucraft/">
-https://h-nari.github.io/Chizucraft/</a>
 
 <img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215a1.png" width="300">
 <img src="https://raw.githubusercontent.com/h-nari/Chizucraft/main/img/sc211215b1.png" width="300">
