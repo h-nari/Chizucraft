@@ -1,17 +1,16 @@
 import { Chizucraft, helpMenu, IMinecraftPoint } from "./chizucraft";
 import { CoordinateTransformation } from "./ct";
-import { blockLine, VectorTileRenderer } from "./vectorTileRenderer";
+import { dlg_layer } from "./layer_dlg";
 import { Menu } from "./menu";
+import { dlg_shapes } from "./shape_dlg";
 import { TileBlockTranformation } from "./t2b";
-import { button, div, icon, input, label, option, select, selected, span, tag } from "./tag";
+import { button, div, icon, input, label, option, select, selected, tag } from "./tag";
 import { TaskControl, TaskQueue } from "./taskQueue";
+import { label_check, label_num } from "./template";
 import { ProjectionParameter } from "./tileMaker";
 import { j_alert, round } from "./util";
 import { VectorTile } from "./vectorTile";
-import { label_check, label_num } from "./template";
-import { dlg_shapes } from "./shape_dlg";
-import { dlg_layer } from "./layer_dlg";
-import { assert_not_null } from "./asserts";
+import { blockLine, VectorTileRenderer } from "./vectorTileRenderer";
 
 
 export type MapName = 'gsi_std' | 'gsi_vector' | 'gsi_photo' | 'openStreet';
@@ -19,7 +18,7 @@ export type MapName = 'gsi_std' | 'gsi_vector' | 'gsi_photo' | 'openStreet';
 export interface MapSource {
   name: MapName;
   dispName: string;
-  url: string;
+  template: string;
   zoomMin: number;
   zoomMax: number;
   tileMax: number;
@@ -31,43 +30,18 @@ interface BlockPosition {
   by: number;
 };
 
+const gsi_std_template = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
+const gsi_photo_template = 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg';
+const gsi_vector_template = 'https://cyberjapandata.gsi.go.jp/xyz/experimental_bvmap/{z}/{x}/{y}.pbf';
+const openStreet_template = 'http://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const gsi_photo_mapSource: MapSource
+  = { name: 'gsi_photo', dispName: '航空写真', template: gsi_photo_template, zoomMin: 2, zoomMax: 18, tileMax: 4, type: 'image' };
+
 const mapSorces: MapSource[] = [
-  {
-    name: 'gsi_std',
-    dispName: '地理院',
-    url: 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
-    zoomMin: 2,
-    zoomMax: 18,
-    tileMax: 8,
-    type: 'image'
-  },
-  {
-    name: 'gsi_photo',
-    dispName: '航空写真',
-    url: 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',
-    zoomMin: 2,
-    zoomMax: 18,
-    tileMax: 4,
-    type: 'image'
-  },
-  {
-    name: 'openStreet',
-    dispName: 'OpenStreetMap',
-    url: 'http://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    zoomMin: 2,
-    zoomMax: 18,
-    tileMax: 4,
-    type: 'image'
-  },
-  {
-    name: 'gsi_vector',
-    dispName: '地理院ベクター',
-    url: 'https://cyberjapandata.gsi.go.jp/xyz/experimental_bvmap/{z}/{x}/{y}.pbg',
-    zoomMin: 8,
-    zoomMax: 17,
-    tileMax: 1,
-    type: 'vector'
-  }
+  { name: 'gsi_std', dispName: '地理院', template: gsi_std_template, zoomMin: 2, zoomMax: 18, tileMax: 8, type: 'image' },
+  gsi_photo_mapSource,
+  { name: 'openStreet', dispName: 'OpenStreetMap', template: openStreet_template, zoomMin: 2, zoomMax: 18, tileMax: 4, type: 'image' },
+  { name: 'gsi_vector', dispName: '地理院ベクター', template: gsi_vector_template, zoomMin: 8, zoomMax: 17, tileMax: 1, type: 'vector' }
 ];
 
 const grids = [
@@ -93,6 +67,8 @@ export class VectorMap {
   public mapSource = mapSorces[0];
   public selected?: BlockPosition;
   private gen = 0;
+  public bDispPhoto = true;
+  public bDispBlock = true;
 
   constructor(cc: Chizucraft, targetId: string) {
     this.cc = cc;
@@ -210,7 +186,12 @@ export class VectorMap {
     }
     await this.taskQueue.clear();
     if (gen == this.gen) {
-      this.zoom_update();
+      this.zoom = this.zoom_update(this.zoom, this.mapSource);
+      if (this.cc.stat.zoom != this.zoom) {
+        this.cc.stat.zoom = this.zoom;
+        this.cc.saveStat();
+      }
+
       let s = `zoom:${this.zoom},   Block size:${this.ct.ax} pixel`;
       if (this.selected) {
         let mx = this.selected.bx + this.cc.stat.minecraft_offset.x;
@@ -218,7 +199,15 @@ export class VectorMap {
         s += `  [${mx},${mz}]`;
       }
       this.status(s);
-      this.drawVectorMap(ctx, gen);
+      if (this.mapSource.type == 'vector') {
+        if (this.bDispPhoto) {
+          let zoom = this.zoom_update(this.zoom, gsi_photo_mapSource);
+          await this.drawVectorMap(ctx, gen, false, gsi_photo_template, zoom);
+        }
+        await this.drawVectorMap(ctx, gen, true, this.mapSource.template, this.zoom);
+      } else {
+        await this.drawVectorMap(ctx, gen, false, this.mapSource.template, this.zoom);
+      }
     }
   }
 
@@ -227,39 +216,37 @@ export class VectorMap {
   }
 
 
-  zoom_update() {
-    if (!this.param) return;
-    let zoom_max = this.mapSource.zoomMax;
-    if (this.mapSource.name == 'gsi_vector')
-      zoom_max = Math.min(this.mapSource.zoomMax, this.cc.stat.vector_zoom_max);
-    let zoom_min = this.mapSource.zoomMin;
-    let tile_max = this.mapSource.tileMax;
-    if (this.zoom > zoom_max) this.zoom = zoom_max;
-    if (this.zoom < zoom_min) this.zoom = zoom_min;
+  zoom_update(zoom_init: number, mapSource: MapSource): number {
+    let zoom = zoom_init;
+    if (!this.param) throw new Error('no param');
+    let zoom_max = mapSource.zoomMax;
+    if (mapSource.name == 'gsi_vector')
+      zoom_max = Math.min(mapSource.zoomMax, this.cc.stat.vector_zoom_max);
+    let zoom_min = mapSource.zoomMin;
+    let tile_max = mapSource.tileMax;
+    if (zoom > zoom_max) zoom = zoom_max;
+    if (zoom < zoom_min) zoom = zoom_min;
     // 画面を覆うのに必要なタイル数を計算
     let blockWidth = this.canvas.width / this.ct.ax;
     let pointWidth = blockWidth * this.param.blocksize / this.param.mPerPoint.x;
-    let tileWidth = pointWidth * Math.pow(2, this.zoom - this.param.zoom) / 256;
-    while (tileWidth > tile_max && this.zoom > zoom_min) {
+    let tileWidth = pointWidth * Math.pow(2, zoom - this.param.zoom) / 256;
+    while (tileWidth > tile_max && zoom > zoom_min) {
       tileWidth /= 2;
-      this.zoom--;
+      zoom--;
     }
-    while (tileWidth < tile_max && this.zoom < zoom_max) {
+    while (tileWidth < tile_max && zoom < zoom_max) {
       tileWidth *= 2;
-      this.zoom++;
+      zoom++;
     }
-    if (this.cc.stat.zoom != this.zoom) {
-      this.cc.stat.zoom = this.zoom;
-      this.cc.saveStat();
-    }
+    return zoom;
   }
 
-  async drawVectorMap(ctx: CanvasRenderingContext2D, gen: number) {
+  async drawVectorMap(ctx: CanvasRenderingContext2D, gen: number, bVector: boolean, template: string, zoom: number) {
     if (!this.param) return;
     if (this.gen != gen) return;
     // 画面左上のタイル座標を求める
     let param = this.param;
-    let tb = new TileBlockTranformation(param, this.zoom);
+    let tb = new TileBlockTranformation(param, zoom);
     let bx0 = this.ct.fromX(0);
     let by0 = this.ct.fromY(0);
     let tx0 = round(tb.toTx(bx0), 256);
@@ -272,14 +259,14 @@ export class VectorMap {
       for (let tx = tx0; ; tx += 256) {
         let x = this.ct.toX(tb.toBx(tx));
         if (x >= this.canvas.width) break;
-        if (this.mapSource.type == 'vector') {
+        if (bVector) {
           var ctrl = new TaskControl();
           this.taskQueue.add(() => {
-            return this.drawVectorTile(ctx, tx, ty, tb, ctrl);  // this.zoom, tx, tyのベクタータイルを描画
+            return this.drawVectorTile(ctx, tx, ty, tb, ctrl, template, zoom);  // zoom, tx, tyのベクタータイルを描画
           }, ctrl);
         } else {
           this.taskQueue.add(() => {
-            return this.drawImageTile(ctx, tx, ty, tb);
+            return this.drawImageTile(ctx, tx, ty, tb, template, zoom);
           });
         }
       }
@@ -294,11 +281,10 @@ export class VectorMap {
     }
   }
 
-  drawVectorTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation, ctrl: TaskControl) {
+  drawVectorTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation, ctrl: TaskControl, template: string, zoom: number) {
     return new Promise<void>((resolve, reject) => {
       if (ctrl.stop) { resolve(); return; }
-      let vals = { x: Math.floor(tx / 256), y: Math.floor(ty / 256), z: this.zoom, t: 'experimental_bvmap' };
-      const template = 'https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.pbf';
+      let vals = { x: Math.floor(tx / 256), y: Math.floor(ty / 256), z: zoom, t: 'experimental_bvmap' };
       let url = template.replace(/\{(x|y|z|t)\}/g, (substring: string, ...arg: string[]) =>
         String(vals[arg[0] as 'x' | 'y' | 'z' | 't'] || `_${arg[0]}_undefined_`));
       let xhr = new XMLHttpRequest();
@@ -314,7 +300,7 @@ export class VectorMap {
         let vm = new VectorTile(data);
         let renderer = new VectorTileRenderer(ctx, ct, tb, tx, ty, vm, that.cc.stat);
         renderer.setArea(that.mx0, that.my0, that.canvas.width - that.mx1, that.canvas.height - that.my1);
-        renderer.draw(ctrl).then(() => { resolve(); });
+        renderer.draw(ctrl, !that.bDispPhoto).then(() => { resolve(); });
       }
       xhr.ontimeout = () => { reject("timeout"); };
       xhr.onabort = () => { reject("abort"); };
@@ -322,10 +308,9 @@ export class VectorMap {
     });
   }
 
-  drawImageTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation): Promise<void> {
+  drawImageTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, tb: TileBlockTranformation, template: string, zoom: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      let vals = { x: Math.floor(tx / 256), y: Math.floor(ty / 256), z: this.zoom };
-      const template = this.mapSource.url;
+      let vals = { x: Math.floor(tx / 256), y: Math.floor(ty / 256), z: zoom };
       let url = template.replace(/\{(x|y|z|t)\}/g, (substring: string, ...arg: string[]) =>
         String(vals[arg[0] as 'x' | 'y' | 'z'] || `_${arg[0]}_undefined_`));
       let img = new Image();
@@ -749,7 +734,7 @@ export class VectorMap {
    * @param tx マインクラフトX座病
    * @param tz マインクラフトZ座病
    */
-   minecraft_goto(tx: number, tz: number) {
+  minecraft_goto(tx: number, tz: number) {
     this.selected = {
       bx: tx - this.cc.stat.minecraft_offset.x,
       by: tz - this.cc.stat.minecraft_offset.z
