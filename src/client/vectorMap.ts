@@ -1,13 +1,23 @@
+import { BlockBuffer } from "./blockBuffer";
 import { Chizucraft, helpMenu, IMinecraftPoint } from "./chizucraft";
+import { ColorSelector } from "./colorSelector";
 import { CoordinateTransformation } from "./ct";
+import { EraseModeHandler } from "./eraseMode";
 import { dlg_layer } from "./layer_dlg";
 import { Menu } from "./menu";
+import { ModeHander } from "./modeHandler";
+import { PaintModeHandler } from "./paintMode";
+import { PanModeHandler } from "./panMode";
+import { RectFillModeHandler } from "./rectFillMode";
+import { SelectModeHandler } from "./selectMode";
 import { dlg_shapes } from "./shape_dlg";
+import { SpoidModeHandler } from "./spoidMode";
 import { TileBlockTranformation } from "./t2b";
 import { button, div, icon, input, label, option, select, selected, tag } from "./tag";
 import { TaskControl, TaskQueue } from "./taskQueue";
 import { label_check, label_num } from "./template";
 import { ProjectionParameter } from "./tileMaker";
+import { ToolBar } from "./toolBar";
 import { j_alert, round } from "./util";
 import { VectorTile } from "./vectorTile";
 import { blockLine, VectorTileRenderer } from "./vectorTileRenderer";
@@ -59,6 +69,7 @@ export class VectorMap {
   public ct = new CoordinateTransformation();
   public param: ProjectionParameter | undefined;
   public cc: Chizucraft;
+  public bb: BlockBuffer;
   public zoom: number = 16;
   private menus: Menu[] = [];
   private taskQueue = new TaskQueue();
@@ -71,10 +82,62 @@ export class VectorMap {
   private gen = 0;
   public bDispPhoto = true;
   public bDispBlock = true;
+  public bDispVector = true;
+  public tb: ToolBar;
+  public modes: ModeHander[] = [];
+  public currentMode: ModeHander | undefined;
+  public cs: ColorSelector;
+  public backgroundColor = '#e0e0e0';
 
   constructor(cc: Chizucraft, targetId: string) {
     this.cc = cc;
+    this.bb = new BlockBuffer(this);
+    this.cs = new ColorSelector(this.bb);
     this.makeMenu();
+    this.modes.push(new SelectModeHandler(this));
+    this.modes.push(new PanModeHandler(this));
+    this.modes.push(new PaintModeHandler(this));
+    this.modes.push(new RectFillModeHandler(this));
+    this.modes.push(new SpoidModeHandler(this));
+    this.modeSet('select');
+
+    this.tb = new ToolBar();
+    this.tb.add({ icon: 'arrow-up-left', title: '選択モード', action: () => { this.modeSet('select'); } });
+    this.tb.add({ icon: 'arrows-move', title: 'パン・モード', action: () => { this.modeSet('pan'); } });
+    this.tb.add({ icon: 'pencil', title: 'ペイントモード', action: () => { this.modeSet('paint') } });
+    this.tb.add({ icon: 'pencil-square', title: '長方形塗り潰し', action: () => { this.modeSet('rect-fill') } });
+    this.tb.add({ icon: 'eyedropper', title: 'スポイドツール', action: () => { this.modeSet('spoid'); } });
+    this.tb.add({
+      icon: 'grid-3x3-gap', title: 'ブロック画像表示', class: 'btn-disp-block',
+      action: () => {
+        this.bb.bDisp = !this.bb.bDisp;
+        // this.setDispBlockState();
+        // this.save();
+        this.draw();
+      }
+    });
+    this.tb.add({
+      icon: 'vector-pen', title: 'ベクター画像',
+      action: () => {
+        this.bDispVector = !this.bDispVector;
+        this.draw();
+      }
+    });
+    this.tb.add({
+      icon: 'grid-3x3', title: 'グリッド表示',
+      action: () => {
+        this.cc.stat.disp.grid = !this.cc.stat.disp.grid;
+        this.draw();
+      }
+    });
+    this.tb.add({
+      icon: 'image', title: '背景画像表示',
+      action: () => {
+        this.bDispPhoto = !this.bDispPhoto;
+        this.draw();
+      }
+    });
+
     $('#' + targetId).html(this.html());
     this.canvas = document.getElementById('vector-map-canvas') as HTMLCanvasElement;
     this.bind();
@@ -96,11 +159,15 @@ export class VectorMap {
           title: 'クリップボードのマインクラフト座標へジャンプ'
         }, icon('box-arrow-in-down-left'))),
         ... this.menus.map(m => m.html())),
+      div(
+        this.tb.html(), this.cs.html()),
       tag('canvas', { id: 'vector-map-canvas' }));
   }
 
   bind() {
     this.menus.forEach(m => m.bind());
+    this.tb.bind();
+    this.cs.bind();
     window.onresize = e => {
       this.update_canvas_size();
     };
@@ -109,41 +176,23 @@ export class VectorMap {
     var y0 = 0;
     var pressed = false;
     var moved = 0;
-    $(this.canvas).on('mousedown', e => {
-      pressed = true;
-      moved = 0;
-      x0 = e.clientX;
-      y0 = e.clientY;
-      e.preventDefault();
-    }).on('mousemove', e => {
-      if (pressed) {
-        let x = e.clientX;
-        let y = e.clientY;
-        if (this.ct.pan(x - x0, y - y0))
-          this.draw();
-        moved += Math.abs(x - x0) + Math.abs(y - y0);
-        x0 = x;
-        y0 = y;
+
+    $(this.canvas).on('click', e => { this.currentMode?.onClick(e); });
+    $(this.canvas).on('mousedown', e => { this.currentMode?.onMouseDown(e); });
+    $(this.canvas).on('mousemove', e => { this.currentMode?.onMouseMove(e); });
+    $(this.canvas).on('mouseup', e => {
+      if (e.button == 0)
+        this.currentMode?.onMouseUp(e);
+      else if (e.button == 1) {
+        this.bb.spoid(e);
+        if (this.currentMode?.name != 'rect-fill') {
+          this.modeSet('paint');
+        }
+        e.stopPropagation();
+        e.preventDefault();
       }
-      e.preventDefault();
-    }).on('mouseup', e => {
-      if (this.ct.pan(e.clientX - x0, e.clientY - y0))
-        this.draw();
-      this.cc.saveView();
-      pressed = false;
-      e.preventDefault();
-    }).on('click', e => {
-      console.log('moved:', moved);
-      if (moved < 5) {
-        let s = this.selected = {
-          bx: this.ct.fromX(e.clientX - this.canvas.offsetLeft),
-          by: this.ct.fromY(e.clientY - this.canvas.offsetTop)
-        };
-        this.addMpoint(this.ct.fromX(e.clientX - this.canvas.offsetLeft),
-          this.ct.fromY(e.clientY - this.canvas.offsetTop))
-        this.draw();
-      }
-    }).on('wheel', e => {
+    });
+    $(this.canvas).on('wheel', e => {
       let oe = e.originalEvent as WheelEvent;
       if (oe.deltaY > 0) this.zoomView(0.5, e);
       else if (oe.deltaY < 0) this.zoomView(2, e);
@@ -151,6 +200,39 @@ export class VectorMap {
       e.preventDefault();
       e.stopPropagation();
     });
+  }
+
+  save() {
+    this.cc.stat.blockBuffer = this.bb.save();
+    this.cc.stat.backgroundColor = this.backgroundColor;
+    this.cc.saveStat();
+  }
+
+  saveView() {
+    this.cc.saveView();
+  }
+
+  modeSet(n: string) {
+    let handler = this.modes.find(m => m.name == n);
+    if (handler) {
+      if (this.currentMode)
+        this.currentMode.onUnselect();
+
+      $('#vector-map-canvas').attr('mode', n);
+      handler.onSelect();
+      this.currentMode = handler;
+    } else {
+      $('#vector-map-canvas').removeAttr('mode');
+      console.error(`mode ${n} not defined`);
+    }
+  }
+
+  blockPos(e: JQuery.ClickEvent | JQuery.MouseDownEvent | JQuery.MouseMoveEvent | JQuery.MouseUpEvent): { bx: number; by: number; } {
+    let sx = e.clientX - this.canvas.offsetLeft;
+    let sy = e.clientY - this.canvas.offsetTop;
+    let bx = this.ct.fromX(sx);
+    let by = this.ct.fromY(sy);
+    return { bx, by };
   }
 
   zoomView(factor: number, e: JQuery.TriggeredEvent) {
@@ -204,12 +286,18 @@ export class VectorMap {
       if (this.mapSource.type == 'vector') {
         if (this.bDispPhoto) {
           let zoom = this.zoom_update(this.zoom, gsi_photo_mapSource);
-          await this.drawVectorMap(ctx, gen, false, gsi_photo_template, zoom);
+          await this.drawMap(ctx, gen, false, gsi_photo_template, zoom);
+        } else {
+          ctx.fillStyle = this.backgroundColor;
+          ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
-        await this.drawVectorMap(ctx, gen, true, this.mapSource.template, this.zoom);
+        if (this.bDispVector) 
+          await this.drawMap(ctx, gen, true, this.mapSource.template, this.zoom);
       } else {
-        await this.drawVectorMap(ctx, gen, false, this.mapSource.template, this.zoom);
+        await this.drawMap(ctx, gen, false, this.mapSource.template, this.zoom);
       }
+
+      this.bb.draw(ctx, this.ct);
     }
   }
 
@@ -243,7 +331,7 @@ export class VectorMap {
     return zoom;
   }
 
-  async drawVectorMap(ctx: CanvasRenderingContext2D, gen: number, bVector: boolean, template: string, zoom: number) {
+  async drawMap(ctx: CanvasRenderingContext2D, gen: number, bVector: boolean, template: string, zoom: number) {
     if (!this.param) return;
     if (this.gen != gen) return;
     // 画面左上のタイル座標を求める
@@ -302,7 +390,7 @@ export class VectorMap {
         let vm = new VectorTile(data);
         let renderer = new VectorTileRenderer(ctx, ct, tb, tx, ty, vm, that.cc.stat);
         renderer.setArea(that.mx0, that.my0, that.canvas.width - that.mx1, that.canvas.height - that.my1);
-        renderer.draw(ctrl, !that.bDispPhoto).then(() => { resolve(); });
+        renderer.draw(ctrl).then(() => { resolve(); });
       }
       xhr.ontimeout = () => { reject("timeout"); };
       xhr.onabort = () => { reject("abort"); };
@@ -753,10 +841,8 @@ export class VectorMap {
   minecraft_jump_by_clipboard() {
     if (navigator.clipboard) {
       navigator.clipboard.readText().then(text => {
-        console.log('clipboard text:', text);
         // textの例: /execute in minecraft:overworld run tp @s -3548.68 68.00 1196.12 -234.14 90.00
         let m = text.match(/tp @s\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+/);
-        console.log('m:', m);
         if (m) {
           let tx = Math.floor(parseFloat(m[1]));
           let tz = Math.floor(parseFloat(m[3]));
@@ -825,13 +911,10 @@ export class VectorMap {
             onOpen: () => {
               console.log('onOpen');
               $('.minecraft-goto-dlg .btn-exec').on('click', () => {
-                console.log('click!');
                 if (navigator.clipboard) {
                   navigator.clipboard.readText().then(text => {
-                    console.log('text:', text);
                     // textの例: /execute in minecraft:overworld run tp @s -3548.68 68.00 1196.12 -234.14 90.00
                     let m = text.match(/tp @s\s+(-?\d+)\.\d+\s+(-?\d+)\.\d+\s+(-?\d+)\.\d+\s+/);
-                    console.log('m:', m);
                     if (m) {
                       $('.minecraft-goto-dlg .x input').val(m[1]);
                       $('.minecraft-goto-dlg .z input').val(m[3]);
@@ -860,6 +943,26 @@ export class VectorMap {
           this.cc.stat.disp.grid = menu.opt.checked = !menu.opt.checked;
           this.cc.saveStat();
           this.draw();
+        }
+      }, {
+        name: '背景色設定',
+        action: (e, m) => {
+          $.confirm({
+            title: '単色背景色設定',
+            content: div({ class: 'monochrome-background-dlg' },
+              div({ class: 'd-inline-block ms-4' },
+                div({ class: 'd-inline-block me-3 ' }, '背景色:'),
+                input({ type: 'color', value: this.backgroundColor, class: 'align-middle' }))
+            ),
+            buttons: {
+              OK: () => {
+                this.backgroundColor = $('.monochrome-background-dlg input[type=color]').val() as string;
+                this.save();
+                this.draw();
+              },
+              Cancel: () => { }
+            }
+          });
         }
       }, {
         separator: true

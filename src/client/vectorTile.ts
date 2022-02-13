@@ -15,7 +15,6 @@ export class VectorTile {
   }
 
   dump() {
-    console.log('test');
 
     for (let layer of this.tile.getLayersList()) {
       console.log('ver:', layer.getVersion(), 'Layer name:', layer.getName(), 'Extent:', layer.getExtent());

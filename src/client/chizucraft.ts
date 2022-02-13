@@ -1,4 +1,5 @@
 import * as L from 'leaflet';
+import { BlockBufferSave } from './blockBuffer';
 import { Menu } from './menu';
 import { a, button, div, input, label, span } from './tag';
 import { row } from './template';
@@ -49,7 +50,9 @@ export interface cc_stat {
       blockColor: string;
       ord: number;
     }
-  }
+  };
+  blockBuffer?: BlockBufferSave;
+  backgroundColor?: string;
 };
 
 let init_stat: cc_stat =
@@ -203,8 +206,13 @@ export class Chizucraft {
       let stat = JSON.parse(stat_json);
       deepAssign(this.stat, stat);
       this.setVectorParam();
-      if (this.stat.origin)
+      if (this.stat.origin) {
         this.vectorMap.setMap(this.stat.disp.mapName, this.stat.disp.bDispPhoto || false);
+        if (this.stat.blockBuffer)
+          this.vectorMap.bb.load(this.stat.blockBuffer);
+        if (this.stat.backgroundColor)
+          this.vectorMap.backgroundColor = this.stat.backgroundColor;
+      }
       if (this.stat.tab)
         this.tab_set(this.stat.tab);
     }
@@ -445,7 +453,6 @@ export class Chizucraft {
         name: '設定をクリア',
         action: async (e, menu) => {
           let r = await jconfirm('設定をクリアすると影響が大きいですが、クリア前にセーブしますか？', ['yes', 'no', 'cancel']);
-          console.log('r:', r);
           if (r == 'cancel') return;
           else if (r == 'yes') {
             this.fileSave();

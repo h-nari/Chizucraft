@@ -48,7 +48,7 @@ export class VectorTileRenderer {
     this.y1 = y1;
   }
 
-  draw(ctrl: TaskControl, bClear: boolean) {
+  draw(ctrl: TaskControl) {
     this.ctrl = ctrl;
     return new Promise((resolve, reject) => {
       this.toX = (x: number) => { return this.ct.toX(this.tb.toBx(x * 256 / 4096 + this.tx)); };
@@ -58,12 +58,12 @@ export class VectorTileRenderer {
       let y0 = this.toY(0);
       let y1 = this.toY(4096);
       let ctx = this.ctx;
-      if (bClear) {
+      if (false) {
         ctx.save();
         ctx.beginPath();
         ctx.rect(this.x0, this.y0, this.x1 - this.x0, this.y1 - this.y0);
         ctx.clip();
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = 'gray';
         ctx.beginPath();
         ctx.rect(x0, y0, x1 - x0, y1 - y0);
         ctx.fill();

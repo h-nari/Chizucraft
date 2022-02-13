@@ -50,6 +50,34 @@ div.vector-map {
   border: 1px solid green;
 }
 
+#vector-map-canvas[mode=select] {
+  cursor: auto;
+}
+
+#vector-map-canvas[mode=pan] {
+  cursor: grab;
+}
+
+#vector-map-canvas[mode=paint] {
+  cursor: url(372bf1c0dffabd88fa68.svg) 1 16, auto;
+}
+
+#vector-map-canvas[mode=rect-fill] {
+  cursor: url(75d078b547e1c0688445.svg) 1 16, auto;
+}
+
+#vector-map-canvas[mode=erase] {
+  cursor: url(28f601af4840ac7e6d31.svg) 1 16, auto;
+}
+
+#vector-map-canvas[mode=spoid] {
+  cursor: url(2987bb6cf52c53c4120f.svg) 1 16, auto;
+}
+
+#vector-map-canvas[mode=measure] {
+  cursor: url(377e2e80ce03206463f7.svg), auto;
+}
+
 .topbar .status {
   border: 1px solid black;
   padding: 4px;
