@@ -37,6 +37,7 @@ export interface cc_stat {
   tab?: string;
   disp: {
     mapName: MapName;
+    bDispPhoto?: boolean;
     grid: boolean;
   }
   vector_zoom_max: number;
@@ -58,7 +59,7 @@ let init_stat: cc_stat =
   zoom: 15,
   marker: { disp: false, grid_size: 2048 },
   minecraft_offset: { x: 0, y: 64, z: 0 },
-  disp: { mapName: 'gsi_vector', grid: true },
+  disp: { mapName: 'gsi_vector', bDispPhoto: true, grid: true },
   vector_zoom_max: 16,
   mpoints: [],
   shapes: [],
@@ -203,7 +204,7 @@ export class Chizucraft {
       deepAssign(this.stat, stat);
       this.setVectorParam();
       if (this.stat.origin)
-        this.vectorMap.setMap(this.stat.disp.mapName);
+        this.vectorMap.setMap(this.stat.disp.mapName, this.stat.disp.bDispPhoto || false);
       if (this.stat.tab)
         this.tab_set(this.stat.tab);
     }

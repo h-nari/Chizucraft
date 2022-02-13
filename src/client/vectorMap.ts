@@ -36,12 +36,14 @@ const gsi_vector_template = 'https://cyberjapandata.gsi.go.jp/xyz/experimental_b
 const openStreet_template = 'http://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const gsi_photo_mapSource: MapSource
   = { name: 'gsi_photo', dispName: '航空写真', template: gsi_photo_template, zoomMin: 2, zoomMax: 18, tileMax: 4, type: 'image' };
+const gsi_vector_mapSource: MapSource =
+  { name: 'gsi_vector', dispName: '地理院ベクター', template: gsi_vector_template, zoomMin: 8, zoomMax: 17, tileMax: 1, type: 'vector' };
 
 const mapSorces: MapSource[] = [
   { name: 'gsi_std', dispName: '地理院', template: gsi_std_template, zoomMin: 2, zoomMax: 18, tileMax: 8, type: 'image' },
   gsi_photo_mapSource,
   { name: 'openStreet', dispName: 'OpenStreetMap', template: openStreet_template, zoomMin: 2, zoomMax: 18, tileMax: 4, type: 'image' },
-  { name: 'gsi_vector', dispName: '地理院ベクター', template: gsi_vector_template, zoomMin: 8, zoomMax: 17, tileMax: 1, type: 'vector' }
+  gsi_vector_mapSource,
 ];
 
 const grids = [
@@ -477,10 +479,11 @@ export class VectorMap {
     ctx.restore();
   }
 
-  setMap(mapName: MapName) {
+  setMap(mapName: MapName, bDispPhoto: boolean) {
     for (let ms of mapSorces) {
       if (ms.name == mapName) {
         this.mapSource = ms;
+        this.bDispPhoto = bDispPhoto;
         this.draw();
         return;
       }
@@ -924,15 +927,30 @@ export class VectorMap {
           menu.add({
             name: ms.dispName,
             with_check: true,
-            checked: this.mapSource == ms,
+            checked: this.mapSource == ms && !this.bDispPhoto,
             action: (e, menu) => {
               this.mapSource = ms;
+              this.bDispPhoto = false;
               this.cc.stat.disp.mapName = ms.name;
+              this.cc.stat.disp.bDispPhoto = false;
               this.cc.saveStat();
               this.draw();
             }
           });
         }
+        menu.add({
+          name: '地理院ベクター + 航空写真',
+          with_check: true,
+          checked: this.mapSource == gsi_vector_mapSource && this.bDispPhoto,
+          action: (e, menu) => {
+            this.mapSource = gsi_vector_mapSource;
+            this.bDispPhoto = true;
+            this.cc.stat.disp.mapName = gsi_vector_mapSource.name;
+            this.cc.stat.disp.bDispPhoto = true;
+            this.cc.saveStat();
+            this.draw();
+          }
+        });
         menu.addSeparator();
         menu.add({
           name: 'GoogleMapを開く',
