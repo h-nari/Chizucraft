@@ -61,7 +61,6 @@ export class BlockBuffer {
         ctx.fillStyle = color;
         ctx.fill();
       }))
-      this.drawSelectedRect(ctx, ct);
     }
   }
 
@@ -78,6 +77,11 @@ export class BlockBuffer {
   }
 
   select(x: number, y: number) {
+    this.selectedRect = new Rect(x, y, 1, 1);
+  }
+
+  singleBlockSelected(): boolean {
+    return this.selectedRect !== undefined && this.selectedRect.w == 1 && this.selectedRect.h == 1;
   }
 
   paint(bx: number, by: number) {

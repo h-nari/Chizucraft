@@ -1,8 +1,8 @@
+import { assert_not_null } from "./asserts";
 import { BlockBuffer } from "./blockBuffer";
 import { Chizucraft, helpMenu, IMinecraftPoint } from "./chizucraft";
 import { ColorSelector } from "./colorSelector";
 import { CoordinateTransformation } from "./ct";
-import { EraseModeHandler } from "./eraseMode";
 import { dlg_layer } from "./layer_dlg";
 import { Menu } from "./menu";
 import { ModeHander } from "./modeHandler";
@@ -33,11 +33,6 @@ export interface MapSource {
   zoomMax: number;
   tileMax: number;
   type: 'image' | 'vector';
-};
-
-interface BlockPosition {
-  bx: number;
-  by: number;
 };
 
 const gsi_std_template = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
@@ -78,7 +73,6 @@ export class VectorMap {
   private my0 = 20;
   private my1 = 0;
   public mapSource = mapSorces[0];
-  public selected?: BlockPosition;
   private gen = 0;
   public bDispPhoto = true;
   public bDispBlock = true;
@@ -276,13 +270,6 @@ export class VectorMap {
         this.cc.saveStat();
       }
 
-      let s = `zoom:${this.zoom},   Block size:${this.ct.ax} pixel`;
-      if (this.selected) {
-        let mx = this.selected.bx + this.cc.stat.minecraft_offset.x;
-        let mz = this.selected.by + this.cc.stat.minecraft_offset.z;
-        s += `  [${mx},${mz}]`;
-      }
-      this.status(s);
       if (this.mapSource.type == 'vector') {
         if (this.bDispPhoto) {
           let zoom = this.zoom_update(this.zoom, gsi_photo_mapSource);
@@ -291,13 +278,15 @@ export class VectorMap {
           ctx.fillStyle = this.backgroundColor;
           ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
-        if (this.bDispVector) 
+        if (this.bDispVector)
           await this.drawMap(ctx, gen, true, this.mapSource.template, this.zoom);
       } else {
         await this.drawMap(ctx, gen, false, this.mapSource.template, this.zoom);
       }
 
       this.bb.draw(ctx, this.ct);
+      this.drawMisc(ctx);
+      this.bb.drawSelectedRect(ctx, this.ct);
     }
   }
 
@@ -367,7 +356,7 @@ export class VectorMap {
         this.taskQueue.add(() => { return this.drawGrid(ctx); }, new TaskControl());
       this.taskQueue.add(() => { return this.drawXFrame(ctx); }, new TaskControl());
       this.taskQueue.add(() => { return this.drawYFrame(ctx); }, new TaskControl());
-      this.taskQueue.add(() => { return this.drawMisc(ctx) }, new TaskControl());
+      // this.taskQueue.add(() => { return this.drawMisc(ctx) }, new TaskControl());
     }
   }
 
@@ -543,11 +532,13 @@ export class VectorMap {
         this.drawBlock(ctx, m.x, m.z, m.color);
     }
 
+    /*
     let s = this.selected;
     if (s) {
       let off = this.cc.stat.minecraft_offset;
       this.drawBlock(ctx, s.bx + off.x, s.by + off.z);
     }
+    */
     ctx.restore();
   }
 
@@ -806,7 +797,7 @@ export class VectorMap {
       action: (e, menu) => {
         this.cc.stat.mpoints = [];
         this.cc.saveStat();
-        this.selected = undefined;
+        // this.selected = undefined;
         this.draw();
         dlg.close();
       }
@@ -826,12 +817,11 @@ export class VectorMap {
    * @param tz マインクラフトZ座病
    */
   minecraft_goto(tx: number, tz: number) {
-    this.selected = {
-      bx: tx - this.cc.stat.minecraft_offset.x,
-      by: tz - this.cc.stat.minecraft_offset.z
-    };
-    this.ct.moveTo(this.selected.bx, this.selected.by,
-      this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
+    let bx = tx - this.cc.stat.minecraft_offset.x;
+    let by = tz - this.cc.stat.minecraft_offset.z;
+    this.bb.select(bx, by);
+
+    this.ct.moveTo(bx, by, this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
     this.draw();
   }
 
@@ -864,15 +854,16 @@ export class VectorMap {
         name: '基準点に移動',
         action: (e, menu) => {
           this.ct.moveTo(0, 0, this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
-          this.selected = { bx: 0, by: 0 };
+          this.bb.select(0, 0);
           this.draw();
         }
       }, {
         name: '選択されたブロックに移動',
-        onBeforeExpand: menu => { menu.opt.disable = this.selected === undefined; },
+        onBeforeExpand: menu => { menu.opt.disable = !this.bb.singleBlockSelected(); },
         action: (e, menu) => {
-          if (this.selected) {
-            this.ct.moveTo(this.selected.bx, this.selected.by,
+          if (this.bb.singleBlockSelected()) {
+            assert_not_null(this.bb.selectedRect);
+            this.ct.moveTo(this.bb.selectedRect.x, this.bb.selectedRect.y,
               this.ct.ax, this.canvas.width / 2, this.canvas.height / 2);
             this.draw();
           } else {
@@ -883,9 +874,10 @@ export class VectorMap {
         name: 'マインクラフトの座標に移動',
         action: (e, menu) => {
           let { x, z } = this.cc.stat.minecraft_offset;
-          if (this.selected) {
-            x += this.selected.bx;
-            z += this.selected.by;
+          if (this.bb.singleBlockSelected()) {
+            assert_not_null(this.bb.selectedRect);
+            x += this.bb.selectedRect.x;
+            z += this.bb.selectedRect.y;
           }
           $.confirm({
             title: 'マインクラフトの座標に移動',
@@ -969,10 +961,10 @@ export class VectorMap {
       }, {
         name: 'マインクラフトの座標設定',
         action: (e, menu) => {
-          let sel = this.selected;
-          if (!sel) {
+          if (!this.bb.singleBlockSelected()) {
             j_alert('ブロックが選択されていません');
           } else {
+            assert_not_null(this.bb.selectedRect);
             let off = this.cc.stat.minecraft_offset;
             $.confirm({
               title: 'マインクラフトの座標設定',
@@ -981,19 +973,20 @@ export class VectorMap {
               content: div({ class: 'minecraft-offset-dlg' },
                 div('現在選択されたブロックの座標'),
                 div(
-                  label_num('x', sel.bx + off.x),
+                  label_num('x', this.bb.selectedRect.x + off.x),
                   label_num('y', off.y),
-                  label_num('z', sel.by + off.z))
+                  label_num('z', this.bb.selectedRect.y + off.z))
               ),
               buttons: {
                 '設定': () => {
-                  if (sel) {
+                  if (this.bb.singleBlockSelected()) {
+                    assert_not_null(this.bb.selectedRect);
                     let x = Number($('.minecraft-offset-dlg .x input').val());
                     let y = Number($('.minecraft-offset-dlg .y input').val());
                     let z = Number($('.minecraft-offset-dlg .z input').val());
-                    off.x = x - sel.bx;
+                    off.x = x - this.bb.selectedRect.x;
                     off.y = y;
-                    off.z = z - sel.by;
+                    off.z = z - this.bb.selectedRect.y;
                     this.cc.saveStat();
                     this.draw();
                   }

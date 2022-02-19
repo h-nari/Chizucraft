@@ -1,3 +1,4 @@
+import { assert_not_null } from "./asserts";
 import { ModeHander } from "./modeHandler";
 import { Rect } from "./rect";
 import { VectorMap } from "./vectorMap";
@@ -33,6 +34,14 @@ export class SelectModeHandler extends ModeHander {
       if (this.bp0) {
         let bp = this.parent.blockPos(e);
         this.parent.bb.selectedRect = Rect.from2Point(this.bp0.bx, this.bp0.by, bp.bx, bp.by);
+      }
+      let bb = this.parent.bb;
+      if (bb.singleBlockSelected()) {
+        assert_not_null(bb.selectedRect);
+        let bx = bb.selectedRect.x;
+        let by = bb.selectedRect.y;
+        let mo = this.parent.cc.stat.minecraft_offset;
+        this.parent.status(`minecraft x:${bx + mo.x} z:${by + mo.z}`);
       }
       this.parent.draw();
       this.pressed = false;
