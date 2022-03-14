@@ -22,10 +22,10 @@ export class PaintModeHandler extends ModeHander {
 
   override onMouseUp(e: JQuery.MouseUpEvent<any, any, any, any>): void {
     if (this.pressed) {
-      this.parent.save();
       this.pressed = false;
       this.parent.save();
-      this.parent.draw();
+      console.log('up');
+      // this.parent.draw();
     }
   }
 
